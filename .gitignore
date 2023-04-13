@@ -1,0 +1,7 @@
+.idea/
+images/
+__pycache__/
+*.pyc
+*.pth
+pretrain/.cache/*.pth
+wandb/

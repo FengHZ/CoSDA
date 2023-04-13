@@ -1,0 +1,45 @@
+---
+DataConfig:
+  dataset: "Office31"
+
+ModelConfig:
+  backbone: "resnet50"
+  channels_per_group: 0
+  pretrain_strategy: "shot"
+  bottleneck_dim: 256
+
+TrainingConfig:
+  batch_size: 64
+  # The total data numbers we use in each epoch
+  epoch_samples: 2048
+  total_epochs: 40
+  # optimizer
+  optimizer: "SGD"
+  momentum: 0.9
+  # regularization
+  weight_decay: 0.0005
+  # We decay learning rate from begin value to end value with cosine annealing schedule
+  learning_rate_begin: 0.002
+  learning_rate_end: 0.001
+  # We use EMA to retain the accuracy in source domain
+  ema: True
+  tao_begin: 0.9
+  tao_end: 0.99
+
+# ['amazon', 'webcam', 'dslr']
+DAConfig:
+  source_domain: "webcam"
+  target_domain: "amazon"
+  method: "CoSDA"
+
+DistillConfig:
+  beta: 2
+  reg_alpha: 0
+  temperature_begin: 0.07
+  temperature_end: 0.07
+  # We gradually increase confidence_gate from low to high
+  confidence_gate_begin: 0.5
+  confidence_gate_end: 0.7
+
+DataAugConfig:
+  method: "identity" # method can be "identity", "edgemix"

@@ -1,0 +1,35 @@
+---
+DataConfig:
+  dataset: "Office31"
+
+ModelConfig:
+  backbone: "resnet50"
+  channels_per_group: 0
+  pretrain_strategy: "shot"
+  bottleneck_dim: 256
+
+TrainingConfig:
+  batch_size: 64
+  epoch_samples: 2048
+  total_epochs: 40
+  optimizer: "SGD"
+  momentum: 0.9
+  weight_decay: 0.0005
+  learning_rate_begin: 0.002
+  learning_rate_end: 0.001
+  ema: False
+
+DAConfig:
+  source_domain: "webcam"
+  target_domain: "dslr"
+  method: "NRC"
+
+NRCConfig:
+  k: 4
+  m: 3
+  ema: False # update banks with ema.
+
+DataAugConfig:
+  method: "edgemix"
+  lam: 0.9
+  finetune_epochs: 2

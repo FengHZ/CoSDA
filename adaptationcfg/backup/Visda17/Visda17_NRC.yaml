@@ -1,0 +1,46 @@
+---
+DataConfig:
+  dataset: "VisDA2017"
+
+ModelConfig:
+  backbone: "resnet101"
+  channels_per_group: 0
+  pretrain_strategy: "shot"
+  bottleneck_dim: 256
+
+TrainingConfig:
+  batch_size: 64
+  # The total data numbers we use in each epoch
+  epoch_samples: 1024
+  total_epochs: 50
+  # optimizer
+  optimizer: "SGD"
+  momentum: 0.9
+  # regularization
+  weight_decay: 0.0005
+  # We decay learning rate from begin value to end value with cosine annealing schedule
+  learning_rate_begin: 0.002
+  learning_rate_end: 0.0001
+  # We use EMA to retain the accuracy in source domain
+  ema: False
+
+DAConfig:
+  source_domain: "Synthetic"
+  target_domain: "Real"
+  method: "NRC"
+
+NRCConfig: # batch_size: 256 is proper
+  k: 8 # the number of nearest neighbors
+  m: 8 # the number of the neighbors of neighbors
+  ema: False # update banks with ema.
+
+DataAugConfig:
+  method: "identity" # method can be "identity", "edgemix"
+
+
+
+
+
+
+
+

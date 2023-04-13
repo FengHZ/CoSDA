@@ -1,0 +1,50 @@
+---
+DataConfig:
+  dataset: "Office31"
+
+ModelConfig:
+  backbone: "resnet50"
+  channels_per_group: 0
+  pretrain_strategy: "shot"
+  pretrain_beta: 0.1
+  bottleneck_dim: 256
+
+TrainingConfig:
+  batch_size: 64
+  # The total data numbers we use in each epoch
+  epoch_samples: 2048
+  total_epochs: 20
+  # optimizer
+  optimizer: "SGD"
+  momentum: 0.9
+  # regularization
+  weight_decay: 0.0005
+  # We decay learning rate from begin value to end value with cosine annealing schedule
+  learning_rate_begin: 0.002
+  learning_rate_end: 0.0002
+  # We use EMA to retain the accuracy in source domain
+  ema: False
+
+# ['amazon', 'webcam', 'dslr']
+DAConfig:
+  source_domain: "webcam"
+  target_domain: "amazon"
+  method: "DaC"
+
+DataAugConfig:
+  method: "identity" # method can be "identity", "edgemix"
+
+# number of gpu >= 2
+DaCConfig:
+  temperature: 0.05     # temperature for scaling contrastive loss
+  K: 40                 # initial number of each class
+  k: 5                  # number of nearest neighbors
+  momentum: 0.8         # update banks with ema.
+  threshold: 0          # the threshold of class filtering in obtain_label()
+  confidence_gate: 0.97 # confident gate for split bewteen source-like and target-specific
+  # the follwing are coeffient for 4 loss components.
+  cls_par: 0.02         # for cross entropy loss
+  im_par: 0.25          # for information-maximization loss
+  # the two loss above constitute L_{self} in the paper
+  con_par: 0.03         # for L_{con}
+  mmd_par: 0.15         # for L_{EMMD}

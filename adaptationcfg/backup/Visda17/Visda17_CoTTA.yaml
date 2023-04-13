@@ -1,0 +1,52 @@
+---
+DataConfig:
+  dataset: "VisDA2017"
+
+
+ModelConfig:
+  backbone: "resnet101"
+  channels_per_group: 0
+  pretrain_strategy: "shot"
+  bottleneck_dim: 256
+
+TrainingConfig:
+  batch_size: 64
+  # The total data numbers we use in each epoch
+  epoch_samples: 2048
+  total_epochs: 60
+  # optimizer
+  optimizer: "SGD"
+  momentum: 0.9
+  # regularization
+  weight_decay: 0.0005
+  # We decay learning rate from begin value to end value with cosine annealing schedule
+  learning_rate_begin: 0.01
+  learning_rate_end: 0.0001
+  ema: True
+  tao_begin: 0.9
+  tao_end: 0.99
+
+DAConfig:
+  source_domain: "Synthetic"
+  target_domain: "Real"
+  method: "CoTTA"
+
+CoTTAConfig:
+  aug_times: 32
+  rst: 0.001
+  ap: 0.5
+  confidence_gate_begin: 0.6
+  confidence_gate_end: 0.7
+
+DataAugConfig:
+  method: "identity" # method can be "identity", "edgemix"
+
+
+
+
+
+
+
+
+
+

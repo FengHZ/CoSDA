@@ -1,0 +1,50 @@
+---
+DataConfig:
+  dataset: "DomainNet"
+
+ModelConfig:
+  backbone: "resnet50"
+  channels_per_group: 0
+  pretrain_strategy: "Gsfda"
+  bottleneck_dim: 512
+
+TrainingConfig:
+  batch_size: 256
+  # The total data numbers we use in each epoch
+  epoch_samples: 30000
+  total_epochs: 40
+  # optimizer
+  optimizer: "SGD"
+  momentum: 0.9
+  # regularization
+  weight_decay: 0.0005
+  # We decay learning rate from begin value to end value with cosine annealing schedule
+  learning_rate_begin: 0.0005
+  learning_rate_end: 0.00008
+  ema: False
+
+DAConfig:
+  source_domain: "painting"
+  target_domain: "sketch"
+  method: "Gsfda"   
+
+GsfdaConfig:
+  epsilon: 0.00001
+  gen_par: 2
+  k: 10 # k for knn cluster
+  no_embedding: False
+  diff_lr: True
+
+DataAugConfig:
+  method: "identity" # method can be "identity", "edgemix"
+
+
+
+
+
+
+
+
+
+
+

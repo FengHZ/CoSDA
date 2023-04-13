@@ -1,0 +1,46 @@
+---
+DataConfig:
+  dataset: "OfficeHome"
+
+ModelConfig:
+  backbone: "resnet50"
+  channels_per_group: 0
+  pretrain_strategy: "shot"
+  bottleneck_dim: 256
+
+TrainingConfig:
+  batch_size: 64
+  # The total data numbers we use in each epoch
+  epoch_samples: 2048
+  total_epochs: 20
+  # optimizer
+  optimizer: "SGD"
+  momentum: 0.9
+  # regularization
+  weight_decay: 0.0005
+  # We decay learning rate from begin value to end value with cosine annealing schedule
+  learning_rate_begin: 0.002
+  learning_rate_end: 0.001
+  # We use EMA to retain the accuracy in source domain
+  ema: False
+
+DAConfig:
+  source_domain: "Clipart"
+  target_domain: "Art"
+  method: "NRC"
+
+NRCConfig: # batch_size: 256 is proper
+  k: 4 # the number of nearest neighbors
+  m: 3 # the number of the neighbors of neighbors
+  ema: False # update banks with ema.
+
+DataAugConfig:
+  method: "identity" # method can be "identity", "edgemix"
+
+
+
+
+
+
+
+
