@@ -16,7 +16,7 @@ Here is the code for our work [CoSDA:Continual Source-Free Domain Adaptation]().
 Continual source-free domain adaptation is a new and practical task in the field of domain adaptation, which seeks to preserve the performance of a model across all domains encountered during the adaptation process while also protecting the privacy of private data, as illustrated in the following figure:
 <div align='center'><img src="img/CoSDA_Settings.png" alt="setting of continual SFDA" width="80%"/></div>
 
-CoSDA is a continual source-free domain adaptation approach that employs a dual-speed optimized teacher-student model pair and is equipped with consistency learning, as shown in the following figurs. The implementaion details of CoSDA are shown in \[[train/cosda/cosda.py].
+CoSDA is a continual source-free domain adaptation approach that employs a dual-speed optimized teacher-student model pair and is equipped with consistency learning, as shown in the following figurs. The implementaion details of CoSDA are shown in \[[train/cosda/cosda.py](train/cosda/cosda.py)\].
 
 <div align='center'><img src="img/CoSDA_Method.png" alt="pipeline of CoSDA" width="80%"/></div>
 
