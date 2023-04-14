@@ -82,7 +82,7 @@ base_path
   ```bash
   python single_tar.py -bp [base_path] --config [config_file] --writer [tensorboard / wandb]
   ```
-  We have created separate configuration files for each method, which can be found in the \[[adaptationcfg/backup)](adaptationcfg/backup)\] directory. The source_domain and target_domain can be manually specified under the DAConfig key in the configuration file. We provide support for two methods of recording the training process: tensorboard and wandb. To use tensorboard, you need to specify the log_path to store the event files locally using -lp [log_path]. To use wandb, you need to specify the entity using -e [entity].
+  We have created separate configuration files for each method, which can be found in the \[[adaptationcfg/backup](adaptationcfg/backup)\] directory. The source_domain and target_domain can be manually specified under the DAConfig key in the configuration file. We provide support for two methods of recording the training process: tensorboard and wandb. To use tensorboard, you need to specify the log_path to store the event files locally using -lp [log_path]. To use wandb, you need to specify the entity using -e [entity].
 
 * Multi-targets adaptation.
 
