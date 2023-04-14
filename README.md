@@ -82,7 +82,9 @@ base_path
   ```bash
   python single_tar.py -bp [base_path] --config [config_file] --writer [tensorboard / wandb]
   ```
-  We have created separate configuration files for each method, which can be found in the \[[adaptationcfg/backup)](adaptationcfg/backup)\] directory. The source_domain and target_domain can be manually specified under the DAConfig key in the configuration file. We provide support for two methods of recording the training process: tensorboard and wandb. To use tensorboard, you need to specify the log_path to store the event files locally using -lp [log_path]. To use wandb, you need to specify the entity using -e [entity].
+  We have created separate configuration files for each method, which can be found in the \[[adaptationcfg/backup)](adaptationcfg/backup)\] directory. The `source_domain` and `target_domain` can be manually specified under the `DAConfig` key in the configuration file. 
+
+  We provide support for two methods of recording the training process: `tensorboard` and `wandb`. To use `tensorboard`, you need to specify the `log_path` to store the event files locally using `-lp [log_path]`. To use `wandb`, you need to specify the `entity` using `-e [entity]`.
 
 * Multi-targets adaptation.
 
@@ -94,19 +96,21 @@ base_path
 ## Supported Methods
 Apart from CoSDA, we also support the following methods. 
 
-- **SHOT** - Do We Really Need to Access the Source Data? Source Hypothesis Transfer for Unsupervised Domain Adaptation [(ICML'20)](https://proceedings.mlr.press/v119/liang20a.html) \[[train/shot/shot_plus.py](train/shot/shot_plus.py)\]
+- **SHOT** - Do We Really Need to Access the Source Data? Source Hypothesis Transfer for Unsupervised Domain Adaptation. [(ICML'20)](https://proceedings.mlr.press/v119/liang20a.html) \[[train/shot/shot_plus.py](train/shot/shot_plus.py)\]
 
-- **G-SFDA** - Generalized Source-free Domain Adaptation [(ICCV'21)](https://openaccess.thecvf.com/content/ICCV2021/html/Yang_Generalized_Source-Free_Domain_Adaptation_ICCV_2021_paper.html) \[[train/gsfda/gsfda.py](train/gsfda/gsfda.py)\]
+- **SHOT++** - Source Data-absent Unsupervised Domain Adaptation through Hypothesis Transfer and Labeling Transfer. [(TPAMI)](https://arxiv.org/pdf/2012.07297.pdf) \[[train/shot/shot_plus.py](train/shot/shot_plus.py)\]
 
-- **NRC** - Exploiting the Intrinsic Neighborhood Structure for Source-free Domain Adaptation [(NIPS'21)](https://proceedings.neurips.cc/paper/2021/hash/f5deaeeae1538fb6c45901d524ee2f98-Abstract.html) \[[train/nrc/nrc.py](train/nrc/nrc.py)\]
+- **G-SFDA** - Generalized Source-free Domain Adaptation. [(ICCV'21)](https://openaccess.thecvf.com/content/ICCV2021/html/Yang_Generalized_Source-Free_Domain_Adaptation_ICCV_2021_paper.html) \[[train/gsfda/gsfda.py](train/gsfda/gsfda.py)\]
 
-- **AaD** - Attracting and Dispersing: A Simple Approach for Source-free Domain Adaptation [(NIPS'22)](https://openreview.net/forum?id=ZlCpRiZN7n) \[[train/aad/aad.py](train/aad/aad.py)\]
+- **NRC** - Exploiting the Intrinsic Neighborhood Structure for Source-free Domain Adaptation. [(NeurIPS'21)](https://proceedings.neurips.cc/paper/2021/hash/f5deaeeae1538fb6c45901d524ee2f98-Abstract.html) \[[train/nrc/nrc.py](train/nrc/nrc.py)\]
 
-- **DaC** - Divide and Contrast: Source-free Domain Adaptation via Adaptive Contrastive Learning [(NIPS'22)](https://arxiv.org/abs/2211.06612) \[[train/dac/dac.py](train/dac/dac.py)\]
+- **AaD** - Attracting and Dispersing: A Simple Approach for Source-free Domain Adaptation. [(NeurIPS'22)](https://openreview.net/forum?id=ZlCpRiZN7n) \[[train/aad/aad.py](train/aad/aad.py)\]
 
-- **Edgemix** - Balancing Discriminability and Transferability for Source-Free Domain Adaptation [(ICML'22)](https://proceedings.mlr.press/v162/kundu22a.html) \[[train/dataaug/edgemix.py](train/dataaug/edgemix.py)\]
+- **DaC** - Divide and Contrast: Source-free Domain Adaptation via Adaptive Contrastive Learning. [(NeurIPS'22)](https://arxiv.org/abs/2211.06612) \[[train/dac/dac.py](train/dac/dac.py)\]
 
-- **CoTTA** - Continual Test-Time Domain Adaptation [(CVPR'22)](https://openaccess.thecvf.com/content/CVPR2022/html/Wang_Continual_Test-Time_Domain_Adaptation_CVPR_2022_paper.html) \[[train/cotta/cotta.py](train/cotta/cotta.py)\]
+- **Edgemix** - Balancing Discriminability and Transferability for Source-Free Domain Adaptation. [(ICML'22)](https://proceedings.mlr.press/v162/kundu22a.html) \[[train/dataaug/edgemix.py](train/dataaug/edgemix.py)\]
+
+- **CoTTA** - Continual Test-Time Domain Adaptation. [(CVPR'22)](https://openaccess.thecvf.com/content/CVPR2022/html/Wang_Continual_Test-Time_Domain_Adaptation_CVPR_2022_paper.html) \[[train/cotta/cotta.py](train/cotta/cotta.py)\]
 
 ## Citation
 If you find our paper helpful, consider citing us via:
