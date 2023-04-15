@@ -65,10 +65,6 @@ base_path
   ```
 * Pretrain.
   
-  * *To Do*: Our intention is to supply the pretrained parameters for all datasets using the SHOT, SHOT++, and GSFDA methods, thereby eliminating redundant training and reducing computational overhead.
-    
-    * Download Link (Under Construction): [DomainNet](), [OfficeHome](), [Office31](), [VisDA2017]().
-
   ```
   python pretrain.py -bp [base_path] --config [config_file] 
   ```
@@ -82,7 +78,10 @@ base_path
       ├── pretrain_parameters_shot
       │   ├── source_{}_backbone_{}.pth.tar
   ```
-  
+  * *To Do*: Our intention is to supply the pretrained parameters for all datasets using the SHOT, SHOT++, and GSFDA methods, thereby eliminating redundant training and reducing computational overhead.
+    
+    * Download Link (Under Construction): [DomainNet](), [OfficeHome](), [Office31](), [VisDA2017]().
+
 * Single-target adaptation.
   ```bash
   python single_tar.py -bp [base_path] --config [config_file] --writer [tensorboard / wandb]
