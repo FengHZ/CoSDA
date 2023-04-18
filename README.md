@@ -119,5 +119,10 @@ Apart from CoSDA, we also support the following methods.
 ## Citation
 If you find our paper helpful, consider citing us via:
 ```
-Anonymous
+@article{feng2023cosda,
+  title={CoSDA: Continual Source-Free Domain Adaptation},
+  author={Feng, Haozhe and Yang, Zhaorui and Chen, Hesun and Pang, Tianyu and Du, Chao and Zhu, Minfeng and Chen, Wei and Yan, Shuicheng},
+  journal={arXiv preprint arXiv:2304.06627},
+  year={2023}
+}
 ```
