@@ -80,7 +80,7 @@ base_path
   ```
   * *To Do*: Our intention is to supply the pretrained parameters for all datasets using the SHOT, SHOT++, and GSFDA methods, thereby eliminating redundant training and reducing computational overhead.
     
-    * Download Link (Under Construction): [DomainNet](), [OfficeHome](), [Office31](), [VisDA2017]().
+    * Download Link (Under Construction): [DomainNet](), [OfficeHome](), [Office31](https://drive.google.com/file/d/1TU_G1P8EveiYAT5vW-eGIhijqxs-kO0I/view?usp=share_link), [VisDA2017]().
 
 * Single-target adaptation.
   ```bash
