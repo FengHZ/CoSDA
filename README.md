@@ -78,9 +78,7 @@ base_path
       ├── pretrain_parameters_shot
       │   ├── source_{}_backbone_{}.pth.tar
   ```
-  * *To Do*: Our intention is to supply the pretrained parameters for all datasets using the SHOT, SHOT++, and GSFDA methods, thereby eliminating redundant training and reducing computational overhead.
-    
-    * Download Link (Under Construction): [DomainNet](), [OfficeHome](), [Office31](https://drive.google.com/file/d/1TU_G1P8EveiYAT5vW-eGIhijqxs-kO0I/view?usp=share_link), [VisDA2017]().
+  * We supply pretrained parameters for all datasets using the SHOT, SHOT++, and GSFDA methods. Download Links: [DomainNet](https://drive.google.com/file/d/1fyQuNXtME9Uf_oHHrw9ZCHZL7-TyGJzo/view?usp=sharing), [OfficeHome](https://drive.google.com/file/d/18OpU8AX3i8_GUey3SeMyMVG_EkP6Rm-y/view?usp=sharing), [Office31](https://drive.google.com/file/d/1TU_G1P8EveiYAT5vW-eGIhijqxs-kO0I/view?usp=share_link), [VisDA2017](https://drive.google.com/file/d/1BnqOTSeJ1Nuza0WW1uTvPnLJCznJRCaq/view?usp=sharing).
 
 * Single-target adaptation.
   ```bash
