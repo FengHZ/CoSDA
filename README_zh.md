@@ -121,7 +121,7 @@ base_path
 - **CoTTA** - Continual Test-Time Domain Adaptation. [(CVPR'22)](https://openaccess.thecvf.com/content/CVPR2022/html/Wang_Continual_Test-Time_Domain_Adaptation_CVPR_2022_paper.html) \[[train/cotta/cotta.py](train/cotta/cotta.py)\]
 
 ## Citation
-看到这里，不考虑引用一下？
+我们的工作引用格式如下：
 ```
 @article{feng2023cosda,
   title={CoSDA: Continual Source-Free Domain Adaptation},
