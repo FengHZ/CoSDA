@@ -29,7 +29,7 @@ CoSDA is a continual source-free domain adaptation approach that employs a dual-
 
 ## Installation and Usage
 
-### Installation of Datasets.
+### Installation of Datasets
 First, download the datasets from the following links:
 
   - [DomainNet](http://ai.bu.edu/M3SDA/)
