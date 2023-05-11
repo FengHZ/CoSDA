@@ -1,6 +1,6 @@
 <div align='center' style="margin-bottom: 10px"><img src='img/logo.png' alt="logo" width="20%" /></div>
 
-# CoSDA的实现
+# Implementation for CoSDA: Continual Source-Free Domain Adaptation
 ![Stars](https://img.shields.io/github/stars/FengHZ/CoSDA?logo=riseup&color=orange)
 ![Issues](https://img.shields.io/github/issues/FengHZ/CoSDA?logo=codepen)
 ![Forks](https://img.shields.io/github/forks/FengHZ/CoSDA?logo=Pinboard)
