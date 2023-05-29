@@ -3,7 +3,7 @@ import torch
 import torch.nn as nn
 from scipy.spatial.distance import cdist
 from train.shot.shot_plus_utils import rotate_batch_with_labels, Entropy, CrossEntropyLabelSmooth
-
+from train.utils import scaler_step
 
 def obtain_label(loader, backbone, classifier, threshold, distance_type="cosine"):
     start_test = True
@@ -83,7 +83,7 @@ def test_per_domain_rot(loader, backbone, rot_classifier):
     return accuracy
 
 
-def train_target_rot(train_dloaders, backbone, rot_classifier, rot_optimizer, batch_per_epoch):
+def train_target_rot(train_dloaders, backbone, rot_classifier, rot_optimizer, batch_per_epoch, scaler=None):
     # We only train the rotation classifier
     backbone.eval()
     rot_classifier.train()
@@ -106,14 +106,15 @@ def train_target_rot(train_dloaders, backbone, rot_classifier, rot_optimizer, ba
         r_outputs_target = rot_classifier(torch.cat((f_outputs, f_r_outputs), 1))
 
         rotation_loss = nn.CrossEntropyLoss()(r_outputs_target, r_labels_target)
-        rot_optimizer.zero_grad()
-        rotation_loss.backward()
-        rot_optimizer.step()
+        # rot_optimizer.zero_grad()
+        # rotation_loss.backward()
+        # rot_optimizer.step()
+        scaler_step(scaler, rotation_loss, [rot_optimizer])
 
 
 def shot_pretrain(train_dloader_list, backbone_list, classifier_list,
                   optimizer_list, classifier_optimizer_list,
-                  batch_per_epoch, class_num, preprocess=None):
+                  batch_per_epoch, class_num, preprocess=None, scaler=None):
     for model in backbone_list:
         model.train()
     for classifier in classifier_list:
@@ -133,18 +134,21 @@ def shot_pretrain(train_dloader_list, backbone_list, classifier_list,
             label_s = label_s.long().cuda()
             optimizer.zero_grad()
             classifier_optimizer.zero_grad()
-
             output_s = classifier(model(image_s))
             classifier_loss = task_criterion(output_s, label_s)
-
-            classifier_loss.backward()
-            optimizer.step()
-            classifier_optimizer.step()
+            
+            # classifier_loss.backward()
+            scaler.scale(classifier_loss).backward()
+            # optimizer.step()
+            # classifier_optimizer.step()
+            scaler.step(optimizer)
+            scaler.step(classifier_optimizer)
+            scaler.update()
 
 
 def shot_train(train_dloader, backbone, backbone_optimizer, classifier, batch_per_epoch, epoch, dataset_name,
                threshold=0, softmax_epsilon=1e-5, cls_par=0.3, ent_par=1.0, gent=True, ssl_par=0.6, shot_plus=True,
-               rot_classifier=None, rot_optimizer=None, preprocess=None):
+               rot_classifier=None, rot_optimizer=None, preprocess=None, scaler=None):
     if shot_plus is True:
         rot_classifier.train()
 
@@ -188,7 +192,8 @@ def shot_train(train_dloader, backbone, backbone_optimizer, classifier, batch_pe
                 entropy_loss -= gentropy_loss
             im_loss = entropy_loss * ent_par
             classifier_loss += im_loss
-        classifier_loss.backward()
+        # classifier_loss.backward()
+        scaler.scale(classifier_loss).backward()
 
         if ssl_par > 0 and shot_plus is True:
             rot_optimizer.zero_grad()
@@ -203,8 +208,12 @@ def shot_train(train_dloader, backbone, backbone_optimizer, classifier, batch_pe
             r_outputs_target = rot_classifier(torch.cat((f_outputs, f_r_outputs), 1))
 
             rotation_loss = ssl_par * nn.CrossEntropyLoss()(r_outputs_target, r_labels_target)
-            rotation_loss.backward()
+            # rotation_loss.backward()
+            scaler.scale(rotation_loss).backward()
 
-        backbone_optimizer.step()
+        # backbone_optimizer.step()
+        scaler.step(backbone_optimizer)
         if shot_plus is True:
-            rot_optimizer.step()
+            # rot_optimizer.step()
+            scaler.step(rot_classifier)
+        scaler.update()

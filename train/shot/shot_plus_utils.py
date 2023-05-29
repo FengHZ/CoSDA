@@ -1,7 +1,7 @@
 import torch
 import torch.utils.data
 import torch.nn as nn
-
+import torch.distributed as dist
 
 # Assumes that tensor is (nchannels, height, width)
 def _tensor_rot_90(x):
@@ -68,7 +68,9 @@ class CrossEntropyLabelSmooth(nn.Module):
         """
         log_probs = self.logsoftmax(inputs)
         targets = torch.zeros(log_probs.size()).scatter_(1, targets.unsqueeze(1).cpu(), 1)
-        if self.use_gpu: targets = targets.cuda()
+        if self.use_gpu:
+            local_rank = dist.get_rank()
+            targets = targets.cuda(local_rank)
         targets = (1 - self.epsilon) * targets + self.epsilon / self.num_classes
         loss = (- targets * log_probs).sum(dim=1)
         if self.reduction:

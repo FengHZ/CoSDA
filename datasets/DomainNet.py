@@ -1,10 +1,8 @@
 from os import path
-import os
 from PIL import Image
-import torchvision.transforms as transforms
-from torch.utils.data import DataLoader, Dataset
-import torch
+from torch.utils.data import DataLoader, Dataset, DistributedSampler
 
+from .loader_utils import get_ddp_generator, get_regular_transforms
 
 def read_domainnet_data(dataset_path, domain_name, split="train"):
     data_paths = []
@@ -47,22 +45,14 @@ def get_domainnet_dloader(base_path, domain_name, batch_size, num_workers):
     dataset_path = path.join(base_path, 'dataset', 'DomainNet')
     train_data_paths, train_data_labels = read_domainnet_data(dataset_path, domain_name, split="train")
     test_data_paths, test_data_labels = read_domainnet_data(dataset_path, domain_name, split="test")
-    transforms_train = transforms.Compose([
-        transforms.RandomResizedCrop(224, scale=(0.75, 1)),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-    ])
-    transforms_test = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-    ])
-
+    transforms_train, transforms_test = get_regular_transforms()
+    g = get_ddp_generator()
     train_dataset = DomainNet(train_data_paths, train_data_labels, transforms_train, domain_name)
+    train_sampler = DistributedSampler(train_dataset)
     test_dataset = DomainNet(test_data_paths, test_data_labels, transforms_test, domain_name)
+    test_sampler = DistributedSampler(test_dataset, shuffle=False)
     train_dloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True,
-                               shuffle=True)
+                               shuffle=False, sampler=train_sampler, generator=g)
     test_dloader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True,
-                              shuffle=True)
+                              shuffle=False, sampler=test_sampler)
     return train_dloader, test_dloader

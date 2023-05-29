@@ -1,13 +1,8 @@
 from typing import Any, Tuple
-from .loader_utils import ImageList, get_split_sampler
-from os import path
 import os
-import torchvision.transforms as transforms
-from torch.utils.data import DataLoader
-import torch
-import json
-from torch.utils.data.sampler import SubsetRandomSampler
-
+from os import path
+from torch.utils.data import DataLoader, DistributedSampler
+from .loader_utils import ImageList, get_regular_transforms, get_ddp_generator
 
 class OfficeHome(ImageList):
     """`OfficeHome <http://hemanthdv.org/OfficeHome-Dataset/>`_ Dataset.
@@ -74,21 +69,14 @@ class OfficeHome(ImageList):
 
 def get_officehome_dloader(base_path, domain_name, batch_size, num_workers):
     dataset_path = path.join(base_path, 'dataset', 'OfficeHome')
-    transforms_train = transforms.Compose([
-        transforms.RandomResizedCrop(224, scale=(0.75, 1)),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-    ])
-    transforms_test = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-    ])
+    transforms_train, transforms_test = get_regular_transforms()
+    g = get_ddp_generator()
     train_dataset = OfficeHome(dataset_path, domain_name, transform=transforms_train)
+    train_sampler = DistributedSampler(train_dataset)
     test_dataset = OfficeHome(dataset_path, domain_name, transform=transforms_test)
+    test_sampler = DistributedSampler(test_dataset, shuffle=False)
     train_dloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True,
-                               shuffle=True)
+                               shuffle=False, sampler=train_sampler, generator=g)
     test_dloader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True,
-                              shuffle=True)
+                              shuffle=False, sampler=test_sampler)
     return train_dloader, test_dloader

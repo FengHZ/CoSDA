@@ -1,7 +1,10 @@
 import numpy as np
-from utils.avgmeter import AverageMeter
 import torch
+import torch.distributed as dist 
+from torch.utils.tensorboard import SummaryWriter
 
+from utils.avgmeter import AverageMeter
+from train.utils import scaler_step
 
 def distill_knowledge(score, confidence_gate, temperature=0.07):
     predict = torch.softmax(score, dim=1)
@@ -14,7 +17,8 @@ def distill_knowledge(score, confidence_gate, temperature=0.07):
 
 def cosda(train_dloader, teacher_backbone, teacher_classifier, student_backbone, student_classifier,
          backbone_optimizer, classifier_optimizer, batch_per_epoch, confidence_gate, beta=2,
-         temperature=1, preprocess=None, reg_alpha=0.1, only_mi=False):
+         temperature=1, preprocess=None, reg_alpha=0.1, only_mi=False, scaler=None, writer=None):
+    local_rank = dist.get_rank()
     utilized_ratio = AverageMeter()
     teacher_backbone.train()
     teacher_classifier.train()
@@ -60,9 +64,13 @@ def cosda(train_dloader, teacher_backbone, teacher_classifier, student_backbone,
             task_loss = reg_alpha * mutual_info_loss
         else:
             task_loss = consistency_loss + reg_alpha * mutual_info_loss
-        task_loss.backward()
-        backbone_optimizer.step()
-        classifier_optimizer.step()
+        scaler_step(scaler, task_loss, [backbone_optimizer, classifier_optimizer])
         ratio = float(torch.mean(knowledge_mask))
         utilized_ratio.update(ratio, knowledge_mask.size(0))
-    print("The sample ratio in utilize :{}%".format(round(utilized_ratio.avg, 4) * 100))
+    if local_rank == 0:
+        print("The sample ratio in utilize :{}%".format(round(utilized_ratio.avg, 4) * 100))
+        if type(writer) == SummaryWriter:
+            writer.add_scalar("loss", task_loss) 
+        else: # wandb
+            writer.log({"loss": task_loss, "utilized_ratio": round(utilized_ratio.avg, 4) * 100})
+            

@@ -3,7 +3,7 @@ DataConfig:
   dataset: "VisDA2017"
 
 ModelConfig:
-  backbone: "resnet101"
+  backbone: "vit_base_patch16_224"
   channels_per_group: 0
   pretrain_strategy: "shot"
   bottleneck_dim: 256

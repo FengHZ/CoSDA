@@ -1,10 +1,11 @@
-import torch
-from model.resnetda import ResNetBackBone, ResNetClassifier
-from typing import Tuple
-import torch.nn.functional as F
 import numpy as np
-from train.nrc.nrc import build_banks
+from typing import Tuple
+import torch
+import torch.nn.functional as F
 
+from train.nrc.nrc import build_banks
+from model.resnetda import ResNetBackBone, ResNetClassifier
+from train.utils import scaler_step
 
 def kd_nrc_losses(backbone: ResNetBackBone, classifier: ResNetClassifier,
                   image: torch.Tensor, feature_bank: torch.Tensor, score_bank: torch.Tensor,
@@ -82,7 +83,7 @@ def kd_nrc_losses(backbone: ResNetBackBone, classifier: ResNetClassifier,
 
 def kd_nrc_train(train_dloader, backbone, classifier, backbone_optimizer, classifier_optimizer, batch_per_epoch, beta=2,
                  temperature=0.01, bottleneck_dim=256, num_classes=65, k=6, m=4, feature_bank=None, score_bank=None,
-                 preprocess=None):
+                 preprocess=None, scaler=None):
     if feature_bank is None or score_bank is None:
         feature_bank, score_bank = build_banks(train_dloader, bottleneck_dim, num_classes, backbone=backbone,
                                                classifier=classifier, preprocess=preprocess)
@@ -102,6 +103,4 @@ def kd_nrc_train(train_dloader, backbone, classifier, backbone_optimizer, classi
         l_n, l_e, l_div = kd_nrc_losses(backbone, classifier, image, feature_bank, score_bank, idx, k, m, num_classes,
                                         ema=True, beta=beta, temperature=temperature)
         task_loss_t = l_n + l_e + l_div
-        task_loss_t.backward()
-        backbone_optimizer.step()
-        classifier_optimizer.step()
+        scaler_step(scaler, task_loss_t, [backbone_optimizer, classifier_optimizer])

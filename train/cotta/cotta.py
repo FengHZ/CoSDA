@@ -1,11 +1,10 @@
+import PIL
 import torch
 import torch.jit
-import PIL
 import torchvision.transforms as transforms
 import train.cotta.cotta_augment as cotta_aug
-from utils.ema import cotta_ema
 from utils.avgmeter import AverageMeter
-
+from train.utils import scaler_step
 
 def get_cotta_transforms(gaussian_std: float = 0.005, soft=False):
     img_shape = (224, 224, 3)
@@ -51,7 +50,7 @@ def softmax_entropy(score, score_t):  # -> torch.Tensor:
 
 def cotta_train(train_dloader, teacher_backbone, teacher_classifier, student_backbone, student_classifier,
                 initial_state, backbone_optimizer, classifier_optimizer, batch_per_epoch, preprocess=None,
-                aug_times=32, rst=0.01, ap=0.92, confidence_gate=0.8):
+                aug_times=32, rst=0.01, ap=0.92, confidence_gate=0.8, scaler=None):
     utilized_ratio = AverageMeter()
     teacher_backbone.train()
     teacher_classifier.train()
@@ -93,9 +92,7 @@ def cotta_train(train_dloader, teacher_backbone, teacher_classifier, student_bac
         # task_loss = torch.sum(knowledge_mask * softmax_entropy(score_s, score_t / 0.3)) / torch.sum(
         #     knowledge_mask)
         # task_loss = softmax_entropy(score_s, score_t / 0.3).mean()
-        task_loss.backward()
-        backbone_optimizer.step()
-        classifier_optimizer.step()
+        scaler_step(scaler, task_loss, [backbone_optimizer, classifier_optimizer])
         """
         Update teacher model with ema and momentum 0.999
         The original CoTA do not work in DA benchmarks, teacher should change slowly

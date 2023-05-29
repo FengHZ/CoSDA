@@ -1,10 +1,11 @@
 import os
 from typing import Optional, Callable, Tuple, Any, List
-import torchvision.datasets as datasets
-from torchvision.datasets.folder import default_loader
 import torch
 from torch.utils.data.sampler import SubsetRandomSampler
-import numpy as np
+import torch.distributed as dist
+import torchvision.datasets as datasets
+from torchvision.datasets.folder import default_loader
+import torchvision.transforms as transforms
 
 
 class ImageList(datasets.VisionDataset):
@@ -29,13 +30,18 @@ class ImageList(datasets.VisionDataset):
         If your data_list_file has different formats, please over-ride :meth:`~ImageList.parse_data_file`.
     """
 
-    def __init__(self, root: str, classes: List[str], data_list_file: str,
-                 transform: Optional[Callable] = None, label_transform: Optional[Callable] = None):
-        super().__init__(root, transform=transform, target_transform=label_transform)
+    def __init__(self,
+                 root: str,
+                 classes: List[str],
+                 data_list_file: str,
+                 transform: Optional[Callable] = None,
+                 label_transform: Optional[Callable] = None):
+        super().__init__(root,
+                         transform=transform,
+                         target_transform=label_transform)
         self.samples = self.parse_data_file(data_list_file)
         self.classes = classes
-        self.class_to_idx = {cls: idx
-                             for idx, cls in enumerate(self.classes)}
+        self.class_to_idx = {cls: idx for idx, cls in enumerate(self.classes)}
         self.loader = default_loader
         self.data_list_file = data_list_file
         self.labels = [l for (_, l) in self.samples]
@@ -82,6 +88,23 @@ class ImageList(datasets.VisionDataset):
         return len(self.classes)
 
 
+def get_regular_transforms():
+    transforms_train = transforms.Compose([
+        transforms.RandomResizedCrop(224, scale=(0.75, 1)),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=(0.485, 0.456, 0.406),
+                             std=(0.229, 0.224, 0.225))
+    ])
+    transforms_test = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=(0.485, 0.456, 0.406),
+                             std=(0.229, 0.224, 0.225))
+    ])
+    return transforms_train, transforms_test
+
+
 def get_split_sampler(labels, test_ratio=0.1, num_classes=31):
     """
     :param labels: torch.array(long tensor)
@@ -102,3 +125,10 @@ def get_split_sampler(labels, test_ratio=0.1, num_classes=31):
     sampler_test = SubsetRandomSampler(sampler_test)
     sampler_train = SubsetRandomSampler(sampler_train)
     return sampler_train, sampler_test
+
+
+def get_ddp_generator(seed=3407):
+    local_rank = dist.get_rank()
+    g = torch.Generator()
+    g.manual_seed(seed + local_rank)
+    return g

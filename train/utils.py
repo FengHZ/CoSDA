@@ -2,8 +2,8 @@ import torch.nn as nn
 from utils.avgmeter import AverageMeter
 from torch.utils.tensorboard import SummaryWriter
 import torch
+import torch.distributed as dist
 import numpy as np
-from collections import defaultdict
 from sklearn.metrics import confusion_matrix
 
 
@@ -72,6 +72,8 @@ def pretrain(train_dloader_list, backbone_list, classifier_list, optimizer_list,
 
 def test_per_domain(domain_name, test_dloader, backbone, classifier, epoch, writer, num_classes=345,
                     top_5_accuracy=True):
+    local_rank = dist.get_rank()
+    world_size = dist.get_world_size()
     backbone.eval()
     classifier.eval()
     domain_loss = AverageMeter()
@@ -91,32 +93,40 @@ def test_per_domain(domain_name, test_dloader, backbone, classifier, epoch, writ
         tmp_score.append(torch.softmax(output, dim=1))
         # turn label into one-hot code
         tmp_label.append(label_onehot)
-    if type(writer) == SummaryWriter:
-        writer.add_scalar(tag="domain_{}_loss".format(domain_name), scalar_value=domain_loss.avg, global_step=epoch + 1)
-    else:
-        writer.log({"domain_{}_loss".format(domain_name): domain_loss.avg}, step=epoch + 1)
+    if local_rank == 0:
+        if type(writer) == SummaryWriter:
+            writer.add_scalar(tag="domain_{}_loss".format(domain_name), scalar_value=domain_loss.avg, global_step=epoch + 1)
+        else:
+            writer.log({"domain_{}_loss".format(domain_name): domain_loss.avg}, step=epoch + 1)
     tmp_score = torch.cat(tmp_score, dim=0).detach()
     tmp_label = torch.cat(tmp_label, dim=0).detach()
     _, y_true = torch.topk(tmp_label, k=1, dim=1)
     _, y_pred = torch.topk(tmp_score, k=5, dim=1)
     top_1_accuracy = float(torch.sum(y_true == y_pred[:, :1]).item()) / y_true.size(0)
-    if type(writer) == SummaryWriter:
-        writer.add_scalar(tag="domain_{}_accuracy_top1".format(domain_name), scalar_value=top_1_accuracy,
-                          global_step=epoch + 1)
-    else:
-        writer.log({"domain_{}_accuracy_top1".format(domain_name): top_1_accuracy}, step=epoch + 1)
-    print("Domain :{}, Top1 Accuracy:{}".format(domain_name, top_1_accuracy))
+    dist.reduce(top_1_accuracy, 0)
+    top_1_accuracy /= world_size
+    if local_rank == 0:
+        if type(writer) == SummaryWriter:
+            writer.add_scalar(tag="domain_{}_accuracy_top1".format(domain_name), scalar_value=top_1_accuracy,
+                            global_step=epoch + 1)
+        else:
+            writer.log({"domain_{}_accuracy_top1".format(domain_name): top_1_accuracy}, step=epoch + 1)
+        print("Domain :{}, Top1 Accuracy:{}".format(domain_name, top_1_accuracy))
     if top_5_accuracy:
         top_5_accuracy = float(torch.sum(y_true == y_pred).item()) / y_true.size(0)
-        if type(writer) == SummaryWriter:
-            writer.add_scalar(tag="domain_{}_accuracy_top5".format(domain_name), scalar_value=top_5_accuracy,
-                              global_step=epoch + 1)
-        else:
-            writer.log({"domain_{}_accuracy_top5".format(domain_name): top_5_accuracy}, step=epoch + 1)
+        dist.reduce(0, top_5_accuracy)
+        top_5_accuracy /= world_size
+        if local_rank == 0:
+            if type(writer) == SummaryWriter:
+                writer.add_scalar(tag="domain_{}_accuracy_top5".format(domain_name), scalar_value=top_5_accuracy,
+                                global_step=epoch + 1)
+            else:
+                writer.log({"domain_{}_accuracy_top5".format(domain_name): top_5_accuracy}, step=epoch + 1)
     return top_1_accuracy
 
 
 def visda17_test_per_domain(domain_name, test_dloader, backbone, classifier, epoch, writer):
+    local_rank = dist.get_rank()
     """Test accuracy of the dataset VisDA2017. Use sklearn to compute confusion matrix, and calculate accuracy
        of each class.
        Classes are in the following order:
@@ -140,12 +150,24 @@ def visda17_test_per_domain(domain_name, test_dloader, backbone, classifier, epo
     _, y_pred = torch.max(all_output, 1)
     matrix = confusion_matrix(y_true.cpu(), y_pred.cpu())
     top_1_accuracy_list = matrix.diagonal() / matrix.sum(axis=1) * 100
+    top_1_accuracy_list = torch.from_numpy(top_1_accuracy_list).cuda()
+    for acc in top_1_accuracy_list:
+        dist.reduce(acc, 0, op=dist.ReduceOp.SUM)
+    top_1_accuracy_list /= dist.get_world_size()
     avg_top_1_accuracy = top_1_accuracy_list.mean()
     top_1_accuracy_str_list = [f"{accuracy_per_class:.2f}" for accuracy_per_class in top_1_accuracy_list]
-    if type(writer) == SummaryWriter:
-        writer.add_scalar(tag=f"domain_{domain_name}_accuracy_top1", scalar_value=avg_top_1_accuracy,
-                          global_step=epoch + 1)
-    else:
-        writer.log({f"domain_{domain_name}_accuracy_top1": avg_top_1_accuracy}, step=epoch + 1)
-    print(f"Domain: {domain_name}, Top1 Accuracy: {avg_top_1_accuracy:.2f}")
-    print(f"Top1 Accuracy List: [{' '.join(top_1_accuracy_str_list)}]")
+    if local_rank == 0:
+        if type(writer) == SummaryWriter:
+            writer.add_scalar(tag=f"domain_{domain_name}_accuracy_top1", scalar_value=avg_top_1_accuracy,
+                            global_step=epoch + 1)
+        else:
+            writer.log({f"domain_{domain_name}_accuracy_top1": avg_top_1_accuracy}, step=epoch + 1)
+    
+        print(f"Domain: {domain_name}, Top1 Accuracy: {avg_top_1_accuracy:.2f}")
+        print(f"Top1 Accuracy List: [{' '.join(top_1_accuracy_str_list)}]")
+
+def scaler_step(scaler, loss, optimizers: list):
+    scaler.scale(loss).backward()
+    for optimizer in optimizers:
+        scaler.step(optimizer)
+    scaler.update()

@@ -4,7 +4,7 @@ from model.resnetda import ResNetBackBone, ResNetClassifier
 import torch.nn as nn
 import torch.nn.functional as F
 from train.nrc.nrc import build_banks
-
+from train.utils import scaler_step
 
 def get_losses(backbone: ResNetBackBone, classifier: ResNetClassifier,
                image: torch.Tensor, feature_bank: torch.Tensor, score_bank: torch.Tensor,
@@ -20,7 +20,7 @@ def get_losses(backbone: ResNetBackBone, classifier: ResNetClassifier,
     pseudo_la = torch.mean(score_near, dim=1)
     l_a = torch.mean(torch.sum(F.kl_div(output_softmax, pseudo_la, reduction='none'), dim=1) * sample_weight)
     batch_size = image.size(0)
-    mask = (torch.ones(batch_size, batch_size) - torch.eye(batch_size)).cuda()
+    mask = (torch.ones(batch_size, batch_size) - torch.eye(batch_size)).to(score_bank.dtype).cuda()
     dot = output_softmax @ output_softmax.T
     dot_masked = dot * mask
     l_d = alpha * torch.mean(torch.sum(dot_masked, dim=-1))
@@ -30,7 +30,7 @@ def get_losses(backbone: ResNetBackBone, classifier: ResNetClassifier,
 
 def aad_train(train_dloader, backbone, classifier, backbone_optimizer,
               classifier_optimizer, batch_per_epoch,
-              bottleneck_dim=256, num_classes=65, k=6, alpha=1.0, preprocess=None):
+              bottleneck_dim=256, num_classes=65, k=6, alpha=1.0, preprocess=None, scaler=None):
     feature_bank, score_bank = build_banks(train_dloader, bottleneck_dim, num_classes, backbone=backbone,
                                            classifier=classifier, preprocess=preprocess)
     backbone.train()
@@ -49,9 +49,8 @@ def aad_train(train_dloader, backbone, classifier, backbone_optimizer,
         l_a, l_d = get_losses(backbone, classifier, image,
                               feature_bank, score_bank, idx, k, alpha)
         task_loss_t = l_a + l_d
-        task_loss_t.backward()
-        backbone_optimizer.step()
-        classifier_optimizer.step()
+        scaler_step(scaler, task_loss_t, [backbone_optimizer, classifier_optimizer])
+        
 
 
 def alpha_decay(alpha_in, gamma, epoch):

@@ -1,8 +1,7 @@
-from .loader_utils import ImageList
+from .loader_utils import ImageList, get_ddp_generator, get_regular_transforms
 from os import path
 import os
-import torchvision.transforms as transforms
-from torch.utils.data import DataLoader
+from torch.utils.data import DataLoader, DistributedSampler
 
 
 class VisDA2017(ImageList):
@@ -33,14 +32,24 @@ class VisDA2017(ImageList):
         "Synthetic": "image_list/train.txt",
         "Real": "image_list/validation.txt"
     }
-    CLASSES = ['aeroplane', 'bicycle', 'bus', 'car', 'horse', 'knife',
-               'motorcycle', 'person', 'plant', 'skateboard', 'train', 'truck']
+    CLASSES = [
+        'aeroplane', 'bicycle', 'bus', 'car', 'horse', 'knife', 'motorcycle',
+        'person', 'plant', 'skateboard', 'train', 'truck'
+    ]
 
-    def __init__(self, dataset_path: str, domain_name: str, transform=None, label_transform=None):
+    def __init__(self,
+                 dataset_path: str,
+                 domain_name: str,
+                 transform=None,
+                 label_transform=None):
         assert domain_name in self.image_list
-        data_list_file = os.path.join(dataset_path, self.image_list[domain_name])
-        super(VisDA2017, self).__init__(dataset_path, VisDA2017.CLASSES, data_list_file=data_list_file,
-                                        transform=transform,label_transform=label_transform)
+        data_list_file = os.path.join(dataset_path,
+                                      self.image_list[domain_name])
+        super(VisDA2017, self).__init__(dataset_path,
+                                        VisDA2017.CLASSES,
+                                        data_list_file=data_list_file,
+                                        transform=transform,
+                                        label_transform=label_transform)
 
     def __getitem__(self, index: int):
         origin = super().__getitem__(index)
@@ -54,21 +63,27 @@ class VisDA2017(ImageList):
 def get_visda17_dloader(base_path, domain_name, batch_size, num_workers):
     # domain name in ["Synthetic","Real"]
     dataset_path = path.join(base_path, 'dataset', 'Visda2017')
-    transforms_train = transforms.Compose([
-        transforms.RandomResizedCrop(224, scale=(0.75, 1)),
-        transforms.RandomHorizontalFlip(),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-    ])
-    transforms_test = transforms.Compose([
-        transforms.Resize((224, 224)),
-        transforms.ToTensor(),
-        transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
-    ])
-    train_dataset = VisDA2017(dataset_path, domain_name, transform=transforms_train)
-    test_dataset = VisDA2017(dataset_path, domain_name, transform=transforms_test)
-    train_dloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True,
-                               shuffle=True)
-    test_dloader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True,
+    transforms_train, transforms_test = get_regular_transforms()
+    g = get_ddp_generator()
+    train_dataset = VisDA2017(dataset_path,
+                              domain_name,
+                              transform=transforms_train)
+    train_sampler = DistributedSampler(train_dataset)
+    test_dataset = VisDA2017(dataset_path,
+                             domain_name,
+                             transform=transforms_test)
+    test_sampler = DistributedSampler(test_dataset, shuffle=False)
+    train_dloader = DataLoader(train_dataset,
+                               batch_size=batch_size,
+                               num_workers=num_workers,
+                               pin_memory=True,
+                               shuffle=False,
+                               sampler=train_sampler,
+                               generator=g)
+    test_dloader = DataLoader(test_dataset,
+                              batch_size=batch_size,
+                              num_workers=num_workers,
+                              pin_memory=True,
+                              sampler=test_sampler,
                               shuffle=False)
     return train_dloader, test_dloader

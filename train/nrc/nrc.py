@@ -1,11 +1,11 @@
+from typing import Tuple
 import torch
 from torch.utils.data import DataLoader
-from typing import Tuple
-from model.resnetda import ResNetBackBone, ResNetClassifier
 import torch.nn as nn
 import torch.nn.functional as F
-import numpy as np
 
+from model.resnetda import ResNetBackBone, ResNetClassifier
+from train.utils import scaler_step
 
 def distill_from_nrc(feature_bank: torch.Tensor, score_bank: torch.Tensor,
                      idx: int, temperature=0.07, confidence_gate=0.9,
@@ -70,17 +70,19 @@ def build_banks(train_dloader: DataLoader, bottleneck_dim: int, num_classes: int
     backbone.eval()
     classifier.eval()
     num_samples = len(train_dloader.dataset)
-    feature_bank = torch.zeros(num_samples, bottleneck_dim, dtype=torch.float32).cuda()
-    score_bank = torch.zeros(num_samples, num_classes, dtype=torch.float32).cuda()
+    feature_bank = torch.zeros(num_samples, bottleneck_dim).cuda()
+    score_bank = torch.zeros(num_samples, num_classes).cuda()
     with torch.no_grad():
         for item in train_dloader:
             image = item[0]
             idx = item[-1]
             image = image.cuda()
-            with torch.no_grad():
-                image = preprocess(image)
+            image = preprocess(image)
             feature = backbone(image)
             feature_norm = F.normalize(feature)
+            if feature_bank.dtype != feature_norm.dtype:
+                feature_bank = feature_bank.to(feature_norm.dtype)
+                score_bank = score_bank.to(feature_norm.dtype)
             feature_bank[idx] = feature_norm.detach().clone()
 
             score = classifier(feature)
@@ -145,6 +147,7 @@ def get_losses(backbone: ResNetBackBone, classifier: ResNetClassifier,
     # For L_N
     sample_weight = torch.sum(weight, dim=1)
     neighbor_weight = weight / sample_weight.view(-1, 1)
+    neighbor_weight = neighbor_weight.to(feature_bank.dtype)
     pseudo_ln = torch.einsum("bk,bkc->bc", neighbor_weight, score_near)
     l_n = torch.mean(torch.sum(F.kl_div(output_softmax, pseudo_ln, reduction='none'), dim=1) * sample_weight)    # For L_E
     # Batch*(km)*c
@@ -160,7 +163,7 @@ def get_losses(backbone: ResNetBackBone, classifier: ResNetClassifier,
 
 
 def nrc_train(train_dloader, backbone, classifier, backbone_optimizer, classifier_optimizer, batch_per_epoch,
-              bottleneck_dim=256, num_classes=65, k=6, m=4, preprocess=None):
+              bottleneck_dim=256, num_classes=65, k=6, m=4, preprocess=None, scaler=None):
     feature_bank, score_bank = build_banks(train_dloader, bottleneck_dim, num_classes, backbone=backbone,
                                            classifier=classifier, preprocess=preprocess)
     backbone.train()
@@ -179,13 +182,11 @@ def nrc_train(train_dloader, backbone, classifier, backbone_optimizer, classifie
         l_n, l_e, l_div = get_losses(backbone, classifier, image,
                                      feature_bank, score_bank, idx, k, m, num_classes)
         task_loss_t = l_n + l_e + l_div
-        task_loss_t.backward()
-        backbone_optimizer.step()
-        classifier_optimizer.step()
+        scaler_step(scaler, task_loss_t, [backbone_optimizer, classifier_optimizer])
 
 
 def nrc_train_ema(feature_bank, score_bank, train_dloader, backbone, classifier, backbone_optimizer,
-                  classifier_optimizer, batch_per_epoch, num_classes=65, k=6, m=4, preprocess=None):
+                  classifier_optimizer, batch_per_epoch, num_classes=65, k=6, m=4, preprocess=None, scaler=None):
     """train_nrc, update feature_bank and score bank during executing `get_losses`.
         w/o build_banks(different from nrc_train)
     Args:
@@ -207,6 +208,4 @@ def nrc_train_ema(feature_bank, score_bank, train_dloader, backbone, classifier,
         l_n, l_e, l_div = get_losses(backbone, classifier, image,
                                      feature_bank, score_bank, idx, k, m, num_classes, ema=True)
         task_loss_t = l_n + l_e + l_div
-        task_loss_t.backward()
-        backbone_optimizer.step()
-        classifier_optimizer.step()
+        scaler_step(scaler, task_loss_t, [backbone_optimizer, classifier_optimizer])

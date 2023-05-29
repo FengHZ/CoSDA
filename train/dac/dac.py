@@ -4,6 +4,8 @@ import torch.nn.functional as F
 import numpy as np
 from scipy.spatial.distance import cdist
 
+from train.utils import scaler_step
+
 def obtain_label(loader, backbone, classifier, threshold, distance_type="cosine"):
     start_test = True
     with torch.no_grad():
@@ -88,7 +90,7 @@ def eval_initial(memory, loader, netB, netC, class_num, K):
 def dac_train(train_dloader, backbone, classifier, backbone_optimizer, batch_per_epoch,
                    num_classes=65, epoch=0, K=300, k=5, threshold=0,
                    confident_gate=0.97, cls_par=0.4, im_par=0.1, con_par=1.0, mmd_par=0.3, 
-                   memory=None, target_test_dloader=None):
+                   memory=None, target_test_dloader=None, scaler=None):
     backbone.eval()
     classifier.eval()
     mem_label = obtain_label(target_test_dloader, backbone, classifier, threshold)
@@ -134,8 +136,7 @@ def dac_train(train_dloader, backbone, classifier, backbone_optimizer, batch_per
                                 F.normalize(features_s1, dim=1), idx, k)
         loss = l_ce * cls_par + im_loss * im_par + l_con * con_par + l_mmd * mmd_par
         backbone_optimizer.zero_grad()
-        loss.backward()
-        backbone_optimizer.step()
+        scaler_step(scaler, loss, [backbone_optimizer])
         
     if epoch == 0:
         eval_initial(memory, train_dloader, backbone, classifier, num_classes, K)   

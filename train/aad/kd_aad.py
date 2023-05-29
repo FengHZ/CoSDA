@@ -1,10 +1,11 @@
-import torch
-from model.resnetda import ResNetBackBone, ResNetClassifier
 from typing import Tuple
-import torch.nn.functional as F
 import numpy as np
-from train.aad.aad import build_banks
+import torch
+import torch.nn.functional as F
 
+from train.aad.aad import build_banks
+from model.resnetda import ResNetBackBone, ResNetClassifier
+from train.utils import scaler_step
 
 def kd_aad_losses(backbone: ResNetBackBone, classifier: ResNetClassifier,
                   image: torch.Tensor, feature_bank: torch.Tensor, score_bank: torch.Tensor,
@@ -58,7 +59,7 @@ def kd_aad_losses(backbone: ResNetBackBone, classifier: ResNetClassifier,
 
 def kd_aad_train(train_dloader, backbone, classifier, backbone_optimizer, classifier_optimizer, batch_per_epoch, beta=2,
                  bottleneck_dim=256, num_classes=65, k=6, feature_bank=None, score_bank=None,
-                 alpha=1.0, preprocess=None):
+                 alpha=1.0, preprocess=None, scaler=None):
     if feature_bank is None or score_bank is None:
         feature_bank, score_bank = build_banks(train_dloader, bottleneck_dim, num_classes, backbone=backbone,
                                                classifier=classifier, preprocess=preprocess)
@@ -77,6 +78,4 @@ def kd_aad_train(train_dloader, backbone, classifier, backbone_optimizer, classi
         classifier_optimizer.zero_grad()
         l_a, l_d = kd_aad_losses(backbone, classifier, image, feature_bank, score_bank, idx, k, True, beta, alpha)
         task_loss_t = l_a + l_d
-        task_loss_t.backward()
-        backbone_optimizer.step()
-        classifier_optimizer.step()
+        scaler_step(scaler, task_loss_t, [backbone_optimizer, classifier_optimizer])

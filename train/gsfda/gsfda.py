@@ -1,20 +1,19 @@
 import numpy as np
+import torch
 import torch.nn as nn
 from torch.nn import functional as F
+from torch.utils.tensorboard import SummaryWriter
+from sklearn.metrics import confusion_matrix
 from train.shot.shot_plus_utils import CrossEntropyLabelSmooth
 from utils.avgmeter import AverageMeter
-from torch.utils.tensorboard import SummaryWriter
-import torch
-from collections import defaultdict
-from sklearn.metrics import confusion_matrix
-
+from train.utils import scaler_step
 
 def gsfda_build_banks(train_dloader, bottleneck_dim, num_classes, backbone, classifier, preprocess):
     backbone.eval()
     classifier.eval()
     num_samples = len(train_dloader.dataset)
-    feature_bank = torch.zeros(num_samples, bottleneck_dim, dtype=torch.float32)
-    score_bank = torch.zeros(num_samples, num_classes, dtype=torch.float32).cuda()
+    feature_bank = torch.zeros(num_samples, bottleneck_dim)
+    score_bank = torch.zeros(num_samples, num_classes).cuda()
     with torch.no_grad():
         for batch_id, batch in enumerate(train_dloader):
             image = batch[0].cuda()
@@ -23,6 +22,9 @@ def gsfda_build_banks(train_dloader, bottleneck_dim, num_classes, backbone, clas
                 image = preprocess(image)
             feature, _ = backbone(image, s=100, t=1, all_mask=False, no_embedding=False)
             feature_norm = F.normalize(feature)
+            if feature_bank.dtype != feature_norm.dtype:
+                feature_bank = feature_bank.to(feature_norm.dtype)
+                score_bank = score_bank.to(feature_norm.dtype)
             feature_bank[idx] = feature_norm.detach().clone().cpu()
 
             score = classifier(feature)
@@ -78,7 +80,7 @@ def gsfda_pretrain(train_dloader_list, backbone_list, classifier_list,
 
 def gsfda_train(train_dloader, backbone, backbone_optimizer, classifier, classifier_optimizer,
                 fea_bank, score_bank, batch_per_epoch, class_num, bottleneck_dim,
-                epsilon=1e-5, gen_par=1, k=2, preprocess=None):
+                epsilon=1e-5, gen_par=1, k=2, preprocess=None, scaler=None):
     backbone.train()
     classifier.train()
 
@@ -120,8 +122,6 @@ def gsfda_train(train_dloader, backbone, backbone_optimizer, classifier, classif
         gentropy_loss = torch.sum(msoftmax * torch.log(msoftmax + epsilon))
         loss += gentropy_loss * gen_par
 
-        loss.backward()
-
         for n, p in backbone.bottleneck.named_parameters():
             if n.find('fc') != -1:
                 if n.find('bias') == -1:
@@ -139,9 +139,7 @@ def gsfda_train(train_dloader, backbone, backbone_optimizer, classifier, classif
                 masks__ = masks.view(1, -1).expand(class_num, bottleneck_dim)
                 mask_ = ((1 - masks__)).cuda()
                 p.grad.data *= mask_
-
-        backbone_optimizer.step()
-        classifier_optimizer.step()
+        scaler_step(scaler, loss, [backbone_optimizer, classifier_optimizer])
 
 
 def gsfda_test_per_domain(domain_name, test_dloader, backbone, classifier, epoch, writer, num_classes=345,
