@@ -168,6 +168,10 @@ def build_optimizers(backbone, classifier, configs):
         eta_min=configs["TrainingConfig"]["learning_rate_end"])
     return backbone_optimizer, classifier_optimizer, backbone_scheduler, classifier_scheduler
 
+def to_ddp_model(model, local_rank):
+    model = nn.SyncBatchNorm.convert_sync_batchnorm(model)
+    model = nn.parallel.DistributedDataParallel(model, device_ids=[local_rank])
+    return model
 
 def build_models(file_path, configs, num_classes, scaler, mixed_precision=False):
     local_rank = dist.get_rank()
@@ -182,20 +186,16 @@ def build_models(file_path, configs, num_classes, scaler, mixed_precision=False)
                 channels_per_group=configs["ModelConfig"]
                 ["channels_per_group"],
                 mask_embedding=mask_embedding, mixed_precision=mixed_precision).cuda()
-        else: # ViT
+        else:
             teacher_backbone = VitBackBone(
                 configs["ModelConfig"]["backbone"], True,
                 configs["ModelConfig"]["bottleneck_dim"],
                 mixed_precision=mixed_precision).cuda()
-        teacher_backbone = nn.SyncBatchNorm.convert_sync_batchnorm(
-            teacher_backbone)
-        teacher_backbone = nn.parallel.DistributedDataParallel(
-            teacher_backbone, device_ids=[local_rank])
+        teacher_backbone = to_ddp_model(teacher_backbone, local_rank)
         teacher_classifier = ResNetClassifier(
             num_classes,
             bottleneck_dim=configs["ModelConfig"]["bottleneck_dim"], mixed_precision=mixed_precision).cuda()
-        teacher_classifier = nn.parallel.DistributedDataParallel(
-            teacher_classifier, device_ids=[local_rank])
+        teacher_classifier = to_ddp_model(teacher_classifier, local_rank)
         teacher_backbone.load_state_dict(pretrained_parameters["backbone"])
         teacher_classifier.load_state_dict(pretrained_parameters["classifier"])
     else:
@@ -212,9 +212,7 @@ def build_models(file_path, configs, num_classes, scaler, mixed_precision=False)
         backbone = VitBackBone(configs["ModelConfig"]["backbone"], True,
                                configs["ModelConfig"]["bottleneck_dim"],
                                mixed_precision=mixed_precision).cuda()
-    backbone = nn.SyncBatchNorm.convert_sync_batchnorm(backbone)
-    backbone = nn.parallel.DistributedDataParallel(backbone,
-                                                    device_ids=[local_rank])
+    backbone = to_ddp_model(backbone, local_rank)
 
     classifier = ResNetClassifier(
         num_classes,
@@ -493,27 +491,22 @@ def build_pretrained_dataloader_and_models(args, configs):
         test_dloaders.append(source_test_dloader)
         use_mask = (configs["TrainingConfig"]["method"] == "Gsfda")
         if configs["ModelConfig"]["backbone"].startswith('resnet'):
-            backbones.append(
-                ResNetBackBone(
+            backbone = ResNetBackBone(
                     configs["ModelConfig"]["backbone"],
                     bottleneck_dim=configs["ModelConfig"]["bottleneck_dim"],
                     channels_per_group=configs["ModelConfig"]
                     ["channels_per_group"],
-                    mask_embedding=use_mask, mixed_precision=args.mixed_precision).cuda())
+                    mask_embedding=use_mask, mixed_precision=args.mixed_precision).cuda()
         else:
-            vit_backbone = VitBackBone(configs["ModelConfig"]["backbone"],
+            backbone = VitBackBone(configs["ModelConfig"]["backbone"],
                                        bottleneck_dim=configs["ModelConfig"]
                                        ["bottleneck_dim"], mixed_precision=args.mixed_precision).cuda()
-            vit_backbone = nn.SyncBatchNorm.convert_sync_batchnorm(
-                vit_backbone)
-            vit_backbone = nn.parallel.DistributedDataParallel(
-                vit_backbone, device_ids=[local_rank])
-            backbones.append(vit_backbone)
+        backbone = to_ddp_model(backbone, local_rank)
+        backbones.append(backbone)
         classifier = ResNetClassifier(
             num_classes,
             bottleneck_dim=configs["ModelConfig"]["bottleneck_dim"], mixed_precision=args.mixed_precision).cuda()
-        classifier = nn.parallel.DistributedDataParallel(
-            classifier, device_ids=[local_rank])
+        classifier = to_ddp_model(classifier, local_rank)
         classifiers.append(classifier)
     # initialize with the same parameter, especially for federated learning
     for backbone in backbones[1:]:
@@ -547,7 +540,6 @@ def build_pretrained_optimizers(configs, backbones, classifiers):
                 configs["TrainingConfig"]["learning_rate_begin"] * 1.0
             }]
         else:
-            # if configs["ModelConfig"]["backbone"].startswith('resnet'):
             params = [{
                 'params':
                 backbone.module.encoder.parameters(),

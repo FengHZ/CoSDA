@@ -68,7 +68,7 @@ def main(local_rank, args, configs):
                      backbone_optimizers,
                      classifier_optimizers,
                      batch_per_epoch=batch_per_epoch,
-                     mixup=True,
+                     mixup=True, scaler=scaler,
                      beta=configs["TrainingConfig"]["beta"])
         elif configs["TrainingConfig"]["method"] == "regular":
             pretrain(train_dloaders,
@@ -77,7 +77,7 @@ def main(local_rank, args, configs):
                      backbone_optimizers,
                      classifier_optimizers,
                      batch_per_epoch=batch_per_epoch,
-                     mixup=False)
+                     mixup=False, scaler=scaler)
         elif configs["TrainingConfig"]["method"] == "edgemix":
             pretrain(train_dloaders,
                      backbones,
@@ -86,7 +86,7 @@ def main(local_rank, args, configs):
                      classifier_optimizers,
                      batch_per_epoch=batch_per_epoch,
                      mixup=False,
-                     preprocess=data_preprocess)
+                     preprocess=data_preprocess, scaler=scaler)
         elif configs["TrainingConfig"]["method"] == "Gsfda":
             gsfda_pretrain(train_dloaders,
                            backbones,
@@ -96,7 +96,7 @@ def main(local_rank, args, configs):
                            batch_per_epoch=batch_per_epoch,
                            class_num=num_classes,
                            reg_par=configs["TrainingConfig"]["reg_par"],
-                           preprocess=data_preprocess)
+                           preprocess=data_preprocess, scaler=scaler)
         else:
             raise NotImplementedError()
         # if (epoch + 1) % 5 == 0:

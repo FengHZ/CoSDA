@@ -106,9 +106,6 @@ def train_target_rot(train_dloaders, backbone, rot_classifier, rot_optimizer, ba
         r_outputs_target = rot_classifier(torch.cat((f_outputs, f_r_outputs), 1))
 
         rotation_loss = nn.CrossEntropyLoss()(r_outputs_target, r_labels_target)
-        # rot_optimizer.zero_grad()
-        # rotation_loss.backward()
-        # rot_optimizer.step()
         scaler_step(scaler, rotation_loss, [rot_optimizer])
 
 
@@ -136,14 +133,7 @@ def shot_pretrain(train_dloader_list, backbone_list, classifier_list,
             classifier_optimizer.zero_grad()
             output_s = classifier(model(image_s))
             classifier_loss = task_criterion(output_s, label_s)
-            
-            # classifier_loss.backward()
-            scaler.scale(classifier_loss).backward()
-            # optimizer.step()
-            # classifier_optimizer.step()
-            scaler.step(optimizer)
-            scaler.step(classifier_optimizer)
-            scaler.update()
+            scaler_step(scaler, classifier_loss, [optimizer, classifier_optimizer])
 
 
 def shot_train(train_dloader, backbone, backbone_optimizer, classifier, batch_per_epoch, epoch, dataset_name,
@@ -192,7 +182,6 @@ def shot_train(train_dloader, backbone, backbone_optimizer, classifier, batch_pe
                 entropy_loss -= gentropy_loss
             im_loss = entropy_loss * ent_par
             classifier_loss += im_loss
-        # classifier_loss.backward()
         scaler.scale(classifier_loss).backward()
 
         if ssl_par > 0 and shot_plus is True:
@@ -208,12 +197,9 @@ def shot_train(train_dloader, backbone, backbone_optimizer, classifier, batch_pe
             r_outputs_target = rot_classifier(torch.cat((f_outputs, f_r_outputs), 1))
 
             rotation_loss = ssl_par * nn.CrossEntropyLoss()(r_outputs_target, r_labels_target)
-            # rotation_loss.backward()
             scaler.scale(rotation_loss).backward()
 
-        # backbone_optimizer.step()
         scaler.step(backbone_optimizer)
         if shot_plus is True:
-            # rot_optimizer.step()
             scaler.step(rot_classifier)
         scaler.update()

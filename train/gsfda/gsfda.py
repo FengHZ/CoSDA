@@ -35,7 +35,7 @@ def gsfda_build_banks(train_dloader, bottleneck_dim, num_classes, backbone, clas
 
 def gsfda_pretrain(train_dloader_list, backbone_list, classifier_list,
                    optimizer_list, classifier_optimizer_list,
-                   batch_per_epoch, class_num, reg_par=0.75, preprocess=None):
+                   batch_per_epoch, class_num, reg_par=0.75, preprocess=None, scaler=None):
     for model in backbone_list:
         model.train()
     for classifier in classifier_list:
@@ -73,9 +73,7 @@ def gsfda_pretrain(train_dloader_list, backbone_list, classifier_list,
             reg /= count
             classifier_loss = task_criterion(output_s1, label_s) + task_criterion(output_s2, label_s) + reg_par * reg
 
-            classifier_loss.backward()
-            optimizer.step()
-            classifier_optimizer.step()
+            scaler_step(scaler, classifier_loss, [optimizer, classifier_optimizer])
 
 
 def gsfda_train(train_dloader, backbone, backbone_optimizer, classifier, classifier_optimizer,

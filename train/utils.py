@@ -1,11 +1,10 @@
-import torch.nn as nn
-from utils.avgmeter import AverageMeter
-from torch.utils.tensorboard import SummaryWriter
-import torch
-import torch.distributed as dist
 import numpy as np
 from sklearn.metrics import confusion_matrix
-
+import torch
+import torch.nn as nn
+import torch.distributed as dist
+from torch.utils.tensorboard import SummaryWriter
+from utils.avgmeter import AverageMeter
 
 def mixup_data(image, label, beta=1.0):
     '''Returns mixed inputs, pairs of targets, and lambda'''
@@ -31,7 +30,7 @@ def mixup_criterion(criterion, prediction, label_a, label_b, lam):
 
 
 def pretrain(train_dloader_list, backbone_list, classifier_list, optimizer_list, classifier_optimizer_list,
-             batch_per_epoch, mixup, preprocess=None, **kwargs):
+             batch_per_epoch, mixup, preprocess=None, scaler=None, **kwargs):
     task_criterion = nn.CrossEntropyLoss().cuda()
     domain_num = len(train_dloader_list)
     for model in backbone_list:
@@ -65,9 +64,7 @@ def pretrain(train_dloader_list, backbone_list, classifier_list, optimizer_list,
                 feature_s = model(image_s)
                 output_s = classifier(feature_s)
                 task_loss_s = task_criterion(output_s, label_s)
-            task_loss_s.backward()
-            optimizer.step()
-            classifier_optimizer.step()
+            scaler_step(scaler, task_loss_s, [optimizer, classifier_optimizer])
 
 
 def test_per_domain(domain_name, test_dloader, backbone, classifier, epoch, writer, num_classes=345,
@@ -114,7 +111,7 @@ def test_per_domain(domain_name, test_dloader, backbone, classifier, epoch, writ
         print("Domain :{}, Top1 Accuracy:{}".format(domain_name, top_1_accuracy))
     if top_5_accuracy:
         top_5_accuracy = float(torch.sum(y_true == y_pred).item()) / y_true.size(0)
-        dist.reduce(0, top_5_accuracy)
+        dist.reduce(top_5_accuracy, 0)
         top_5_accuracy /= world_size
         if local_rank == 0:
             if type(writer) == SummaryWriter:
@@ -151,18 +148,16 @@ def visda17_test_per_domain(domain_name, test_dloader, backbone, classifier, epo
     matrix = confusion_matrix(y_true.cpu(), y_pred.cpu())
     top_1_accuracy_list = matrix.diagonal() / matrix.sum(axis=1) * 100
     top_1_accuracy_list = torch.from_numpy(top_1_accuracy_list).cuda()
-    for acc in top_1_accuracy_list:
-        dist.reduce(acc, 0, op=dist.ReduceOp.SUM)
+    dist.reduce(top_1_accuracy_list, 0)
     top_1_accuracy_list /= dist.get_world_size()
-    avg_top_1_accuracy = top_1_accuracy_list.mean()
-    top_1_accuracy_str_list = [f"{accuracy_per_class:.2f}" for accuracy_per_class in top_1_accuracy_list]
     if local_rank == 0:
         if type(writer) == SummaryWriter:
             writer.add_scalar(tag=f"domain_{domain_name}_accuracy_top1", scalar_value=avg_top_1_accuracy,
                             global_step=epoch + 1)
         else:
             writer.log({f"domain_{domain_name}_accuracy_top1": avg_top_1_accuracy}, step=epoch + 1)
-    
+        avg_top_1_accuracy = top_1_accuracy_list.mean()
+        top_1_accuracy_str_list = [f"{accuracy_per_class:.2f}" for accuracy_per_class in top_1_accuracy_list]
         print(f"Domain: {domain_name}, Top1 Accuracy: {avg_top_1_accuracy:.2f}")
         print(f"Top1 Accuracy List: [{' '.join(top_1_accuracy_str_list)}]")
 
