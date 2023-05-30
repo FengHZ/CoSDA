@@ -1,5 +1,7 @@
 import numpy as np
 from sklearn.metrics import confusion_matrix
+from tqdm import tqdm
+
 import torch
 import torch.nn as nn
 import torch.distributed as dist
@@ -134,7 +136,7 @@ def visda17_test_per_domain(domain_name, test_dloader, backbone, classifier, epo
     dataset_size = len(test_dloader.dataset)
     all_output = torch.zeros(dataset_size, 12).cuda()
     y_true = torch.zeros(dataset_size).long().cuda()
-    for batch_idx, item in enumerate(test_dloader):
+    for batch_idx, item in enumerate(tqdm(test_dloader)):
         image = item[0]
         label = item[1]
         image = image.cuda()
@@ -151,12 +153,12 @@ def visda17_test_per_domain(domain_name, test_dloader, backbone, classifier, epo
     dist.reduce(top_1_accuracy_list, 0)
     top_1_accuracy_list /= dist.get_world_size()
     if local_rank == 0:
+        avg_top_1_accuracy = top_1_accuracy_list.mean()
         if type(writer) == SummaryWriter:
             writer.add_scalar(tag=f"domain_{domain_name}_accuracy_top1", scalar_value=avg_top_1_accuracy,
                             global_step=epoch + 1)
         else:
             writer.log({f"domain_{domain_name}_accuracy_top1": avg_top_1_accuracy}, step=epoch + 1)
-        avg_top_1_accuracy = top_1_accuracy_list.mean()
         top_1_accuracy_str_list = [f"{accuracy_per_class:.2f}" for accuracy_per_class in top_1_accuracy_list]
         print(f"Domain: {domain_name}, Top1 Accuracy: {avg_top_1_accuracy:.2f}")
         print(f"Top1 Accuracy List: [{' '.join(top_1_accuracy_str_list)}]")

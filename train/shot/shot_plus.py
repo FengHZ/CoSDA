@@ -1,6 +1,8 @@
 import numpy as np
+from tqdm import tqdm
 import torch
 import torch.nn as nn
+import torch.distributed as dist
 from scipy.spatial.distance import cdist
 from train.shot.shot_plus_utils import rotate_batch_with_labels, Entropy, CrossEntropyLabelSmooth
 from train.utils import scaler_step
@@ -112,16 +114,21 @@ def train_target_rot(train_dloaders, backbone, rot_classifier, rot_optimizer, ba
 def shot_pretrain(train_dloader_list, backbone_list, classifier_list,
                   optimizer_list, classifier_optimizer_list,
                   batch_per_epoch, class_num, preprocess=None, scaler=None):
+    local_rank = dist.get_rank()
     for model in backbone_list:
         model.train()
     for classifier in classifier_list:
         classifier.train()
     task_criterion = CrossEntropyLabelSmooth(class_num).cuda()
+    
     for train_dloader, model, classifier, optimizer, classifier_optimizer in zip(train_dloader_list,
                                                                                  backbone_list, classifier_list,
                                                                                  optimizer_list,
                                                                                  classifier_optimizer_list):
+        if local_rank == 0:
+            train_dloader = tqdm(train_dloader)
         for i, (image_s, label_s, *_) in enumerate(train_dloader):
+            
             if i > batch_per_epoch:
                 break
             image_s = image_s.cuda()
