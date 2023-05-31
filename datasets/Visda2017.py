@@ -79,7 +79,7 @@ def get_visda17_dloader(base_path, domain_name, batch_size, num_workers):
                                pin_memory=True,
                                shuffle=False,
                                sampler=train_sampler,
-                               generator=g)
+                               generator=g, persistent_workers=True)
     test_dloader = DataLoader(test_dataset,
                               batch_size=batch_size,
                               num_workers=num_workers,

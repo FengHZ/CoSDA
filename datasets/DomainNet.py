@@ -52,7 +52,7 @@ def get_domainnet_dloader(base_path, domain_name, batch_size, num_workers):
     test_dataset = DomainNet(test_data_paths, test_data_labels, transforms_test, domain_name)
     test_sampler = DistributedSampler(test_dataset, shuffle=False)
     train_dloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True,
-                               shuffle=False, sampler=train_sampler, generator=g)
+                               shuffle=False, sampler=train_sampler, generator=g, persistent_workers=True)
     test_dloader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True,
                               shuffle=False, sampler=test_sampler)
     return train_dloader, test_dloader

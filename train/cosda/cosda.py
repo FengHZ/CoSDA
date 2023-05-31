@@ -25,8 +25,6 @@ def cosda(train_dloader, teacher_backbone, teacher_classifier, student_backbone,
     teacher_classifier.train()
     student_backbone.train()
     student_classifier.train()
-    if local_rank == 0:
-        train_dloader = tqdm(train_dloader, 'CoSDA Adapting')
     for i, (image_t, *_) in enumerate(train_dloader):
         if i >= batch_per_epoch:
             break

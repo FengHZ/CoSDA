@@ -72,7 +72,7 @@ def get_office31_dloader(base_path, domain_name, batch_size, num_workers):
     test_dataset = Office31(dataset_path, domain_name, transform=transforms_test)
     test_sampler = DistributedSampler(test_dataset, shuffle=False)
     train_dloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True,
-                               shuffle=False, sampler=train_sampler, generator=g)
+                               shuffle=False, sampler=train_sampler, generator=g, persistent_workers=True)
     test_dloader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True,
                               shuffle=False, sampler=test_sampler)
     return train_dloader, test_dloader
