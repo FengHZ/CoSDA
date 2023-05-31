@@ -87,7 +87,7 @@ def main(local_rank, args, configs):
         target_train_dloader.sampler.set_epoch(epoch)
         target_test_dloader.sampler.set_epoch(epoch)
         if local_rank == 0:
-            print("Begin epoch: {}/{}".format(
+            print("\nBegin epoch: {}/{}".format(
                 epoch,
                 configs["TrainingConfig"]["total_epochs"] - args.start_epoch))
         if configs["DataAugConfig"]["method"] == "edgemix" and epoch + configs["DataAugConfig"]["finetune_epochs"] == \

@@ -126,7 +126,7 @@ def shot_pretrain(train_dloader_list, backbone_list, classifier_list,
                                                                                  optimizer_list,
                                                                                  classifier_optimizer_list):
         if local_rank == 0:
-            train_dloader = tqdm(train_dloader, 'SHOT Pretrain: ')
+            train_dloader = tqdm(train_dloader, 'SHOT Pretraining')
         for i, (image_s, label_s, *_) in enumerate(train_dloader):
             
             if i > batch_per_epoch:

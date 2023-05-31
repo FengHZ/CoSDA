@@ -137,7 +137,7 @@ def visda17_test_per_domain(domain_name, test_dloader, backbone, classifier, epo
     all_output = torch.zeros(dataset_size, 12).cuda()
     y_true = torch.zeros(dataset_size).long().cuda()
     if local_rank == 0:
-        test_dloader = tqdm(test_dloader, 'Testing: ')
+        test_dloader = tqdm(test_dloader, 'Testing')
     for batch_idx, item in enumerate(test_dloader):
         image = item[0]
         label = item[1]

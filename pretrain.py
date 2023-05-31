@@ -46,7 +46,7 @@ def main(local_rank, args, configs):
         for dloader in test_dloaders:
             dloader.sampler.set_epoch(epoch)
         if local_rank == 0:
-            print("Begin epoch: {}/{}".format(
+            print("\nBegin epoch: {}/{}".format(
                 epoch, configs["TrainingConfig"]["total_epochs"]))
         if "edgemix" in configs["TrainingConfig"]["method"] and epoch + configs["TrainingConfig"]["finetune_epochs"] == \
                 configs["TrainingConfig"]["total_epochs"]:
