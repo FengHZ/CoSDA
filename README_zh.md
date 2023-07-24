@@ -33,8 +33,8 @@ CoSDA 是我们针对上述任务所提出的新方法。该方法使用双速�
 首先，从以下链接中下载数据集：
 
   - [DomainNet](http://ai.bu.edu/M3SDA/)
-  - OfficeHome: (1) [image_list](https://cloud.tsinghua.edu.cn/f/ca3a3b6a8d554905b4cd/?dl=1) (2) [Art](https://cloud.tsinghua.edu.cn/f/4691878067d04755beab/?dl=1) (3) [Clipart](https://cloud.tsinghua.edu.cn/f/0d41e7da4558408ea5aa/?dl=1) (4) [Product](https://cloud.tsinghua.edu.cn/f/76186deacd7c4fa0a679/?dl=1) (5) [Real_World](https://cloud.tsinghua.edu.cn/f/dee961894cc64b1da1d7/?dl=1)
-  - Office31: (1) [image_list](https://cloud.tsinghua.edu.cn/f/d9bca681c71249f19da2/?dl=1) (2) [amazon](https://cloud.tsinghua.edu.cn/f/edc8d1bba1c740dc821c/?dl=1) (3) [dslr](https://cloud.tsinghua.edu.cn/f/ca6df562b7e64850ad7f/?dl=1) (4) [webcam](https://cloud.tsinghua.edu.cn/f/82b24ed2e08f4a3c8888/?dl=1)
+  - [OfficeHome](https://drive.google.com/file/d/1WbKtGUyzVJ3JhF0PlJg489LQ6m6Jsn4H/view?usp=drive_link): (1) image_list (2) Art (3) Clipart (4) Product (5) Real_World
+  - [Office31](https://drive.google.com/file/d/1t5eOLvREHB08Nzl4iuDwiedWtbmNgD74/view?usp=drive_link): (1) image_list (2) amazon (3) dslr (4) webcam
   - [VisDA17](https://ai.bu.edu/visda-2017/)
 
 接着，选择一个路径作为`base_path`，在其中创建 `dataset` 目录，并把下载的数据集放在这个目录。下面是预期的文件结构：
