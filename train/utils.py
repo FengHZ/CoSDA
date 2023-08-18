@@ -101,7 +101,8 @@ def test_per_domain(domain_name, test_dloader, backbone, classifier, epoch, writ
     tmp_label = torch.cat(tmp_label, dim=0).detach()
     _, y_true = torch.topk(tmp_label, k=1, dim=1)
     _, y_pred = torch.topk(tmp_score, k=5, dim=1)
-    top_1_accuracy = float(torch.sum(y_true == y_pred[:, :1]).item()) / y_true.size(0)
+    correct = torch.sum(y_true == y_pred[:, :1])
+    top_1_accuracy = correct / y_true.size(0)
     dist.reduce(top_1_accuracy, 0)
     top_1_accuracy /= world_size
     if local_rank == 0:
@@ -110,17 +111,17 @@ def test_per_domain(domain_name, test_dloader, backbone, classifier, epoch, writ
                             global_step=epoch + 1)
         else:
             writer.log({"domain_{}_accuracy_top1".format(domain_name): top_1_accuracy}, step=epoch + 1)
-        print("Domain :{}, Top1 Accuracy:{}".format(domain_name, top_1_accuracy))
-    if top_5_accuracy:
-        top_5_accuracy = float(torch.sum(y_true == y_pred).item()) / y_true.size(0)
-        dist.reduce(top_5_accuracy, 0)
-        top_5_accuracy /= world_size
-        if local_rank == 0:
-            if type(writer) == SummaryWriter:
-                writer.add_scalar(tag="domain_{}_accuracy_top5".format(domain_name), scalar_value=top_5_accuracy,
-                                global_step=epoch + 1)
-            else:
-                writer.log({"domain_{}_accuracy_top5".format(domain_name): top_5_accuracy}, step=epoch + 1)
+        print(f"Domain :{domain_name}, Top1 Accuracy:{top_1_accuracy:.2%}")
+    # if top_5_accuracy:
+    #     top_5_accuracy = float(torch.sum(y_true == y_pred).item()) / y_true.size(0)
+    #     dist.reduce(top_5_accuracy, 0)
+    #     top_5_accuracy /= world_size
+    #     if local_rank == 0:
+    #         if type(writer) == SummaryWriter:
+    #             writer.add_scalar(tag="domain_{}_accuracy_top5".format(domain_name), scalar_value=top_5_accuracy,
+    #                             global_step=epoch + 1)
+    #         else:
+    #             writer.log({"domain_{}_accuracy_top5".format(domain_name): top_5_accuracy}, step=epoch + 1)
     return top_1_accuracy
 
 

@@ -19,11 +19,11 @@ def prepare(config_base_path: str):
     parser = argparse.ArgumentParser(description='CoSDA')
     # Dataset Parameters
     parser.add_argument("--config",
-                        default="backup/Visda17/Visda17_CoSDA.yaml")
+                        default="backup/OfficeHome/OfficeHome_CoSDA.yaml")
     parser.add_argument('-bp', '--base-path',
                         default="/data/fhz_11821062")  # dataset path
     parser.add_argument('-cp', '--ckpt-path',
-                        default='/home/yangzr/ckpt')  # checkpoint path
+                        default='/data/yangzr')  # checkpoint path
     parser.add_argument("--writer",
                         default="tensorboard",
                         help="tensorboard or wandb")
@@ -70,6 +70,7 @@ def prepare(config_base_path: str):
     os.environ['CUDA_VISIBLE_DEVICES'] = args.gpu
     world_size = torch.cuda.device_count()
     os.environ['WORLD_SIZE'] = str(world_size)
+    configs['TrainingConfig']['batch_size'] //= world_size
     return args, configs
 
 

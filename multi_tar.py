@@ -163,7 +163,7 @@ def main(local_rank, args, configs):
                       temperature=temperature,
                       preprocess=data_preprocess,
                       reg_alpha=configs["DistillConfig"]["reg_alpha"],
-                      only_mi=only_mi, scaler=scaler)
+                      only_mi=only_mi, scaler=scaler, writer=writer)
             elif configs["DAConfig"]["method"] == "NRC":
                 if epoch > int(0.5 * configs["TrainingConfig"]["total_epochs"]) and \
                         configs["DataConfig"]["dataset"] == "OfficeHome":
