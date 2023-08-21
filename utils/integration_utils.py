@@ -305,6 +305,7 @@ def build_method_preprocess_items(args, configs, target_train_dloader,
             rot_classifier = ResNetClassifier(
                 4, bottleneck_dim=2 *
                 configs["ModelConfig"]["bottleneck_dim"]).cuda()
+            rot_classifier = to_ddp_model(rot_classifier, dist.get_rank())
             _, pretrained_folder_name = build_pretrained_filepath(
                 args.base_path, configs)
             if configs["ModelConfig"]["channels_per_group"] == 0:
@@ -606,6 +607,7 @@ def build_pretrained_writer(args, configs, entity, project="Pretraining"):
 def build_pretrained_shot(configs):
     rot_classifier = ResNetClassifier(
         4, bottleneck_dim=2 * configs["ModelConfig"]["bottleneck_dim"]).cuda()
+    rot_classifier = to_ddp_model(rot_classifier, dist.get_rank())
     rot_optimizer = SGD(rot_classifier.parameters(),
                         momentum=configs["TrainingConfig"]["momentum"],
                         lr=configs["TrainingConfig"]["learning_rate_begin"],
