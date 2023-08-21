@@ -4,7 +4,7 @@ DataConfig:
   absent_domain: ""
 
 ModelConfig:
-  backbone: "resnet50"
+  backbone: "vit_base_patch16_224.augreg2_in21k_ft_in1k"
   channels_per_group: 0
   bottleneck_dim: 512
 
