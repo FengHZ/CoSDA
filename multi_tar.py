@@ -37,7 +37,7 @@ from train.shot.shot_plus import shot_train
 from train.aad.aad import aad_train, alpha_decay
 from train.nrc.kd_nrc import kd_nrc_train
 from train.aad.kd_aad import kd_aad_train
-from train.gsfda.gsfda import gsfda_train
+from train.gsfda.gsfda import gsfda_train, gsfda_test_per_domain
 from train.cotta.cotta import cotta_train
 from utils.ema import moving_weight, exponential_moving_average, bn_statistics_moving_average
 from utils.avgmeter import get_bn_statistics
@@ -45,8 +45,8 @@ from train.dataaug.preprocess import DataPreprocess
 from train.dac.dac import dac_train
 from utils.integration_utils import build_pretrained_filepath, build_dataloaders, build_models, build_optimizers, \
     build_writer, build_accuracy_evaluation, build_method_preprocess_items
-from datasets.DomainNet import get_domainnet_dloader
-from train.dac.DomainNetDaC import get_domainnet_dac_dloader
+from datasets.DomainNet import get_domainnet_dloader, get_domainnet_mini_dloader
+from train.dac.DomainNetDaC import get_domainnet_dac_dloader, get_domainnet_mini_dac_dloader
 from train.dac.OfficeHomeDaC import get_officehome_dac_dloader
 import wandb
 from utils.avgmeter import load_bn_statistics
@@ -64,6 +64,13 @@ def main(args=args, configs=configs):
         else:
             data_loader = get_domainnet_dloader
         num_classes = 345
+    elif configs['DataConfig']['dataset'] == 'DomainNet_mini':
+        domains = ['real', 'clipart', 'painting', 'sketch']
+        if configs['DAConfig']['method'] == 'DaC':
+            data_loader = get_domainnet_mini_dac_dloader
+        else:
+            data_loader = get_domainnet_mini_dloader
+        num_classes = 126
     elif configs['DataConfig']['dataset'] == "OfficeHome":
         domains = ["Art", "Clipart", "Product", "Real_World"]
         if configs['DAConfig']['method'] == 'DaC':
@@ -272,12 +279,24 @@ def main(args=args, configs=configs):
                 if source_bn_statistics is not None:
                     load_bn_statistics(student_backbone, source_bn_statistics)
             for s in source_domains:
-                test_per_domain(s, test_dataloaders[s], student_backbone,
-                                student_classifier, epoch, writer=writer, num_classes=num_classes,
-                                top_5_accuracy=(num_classes > 10))
-            target_acc = test_per_domain(configs["DAConfig"]["target_domain"], target_test_dloader, student_backbone,
-                                         student_classifier, epoch, writer=writer, num_classes=num_classes,
-                                         top_5_accuracy=(num_classes > 10))
+                if configs["DAConfig"]["method"] == "Gsfda":
+                    gsfda_test_per_domain(s, test_dataloaders[s], student_backbone,
+                                    student_classifier, epoch, writer=writer, num_classes=num_classes,
+                                    top_5_accuracy=(num_classes > 10), is_src=True,
+                                    no_embedding=configs["GsfdaConfig"]["no_embedding"])
+                else:
+                    test_per_domain(s, test_dataloaders[s], student_backbone,
+                                    student_classifier, epoch, writer=writer, num_classes=num_classes,
+                                    top_5_accuracy=(num_classes > 10))
+            if configs["DAConfig"]["method"] == "Gsfda":
+                target_acc = gsfda_test_per_domain(configs["DAConfig"]["target_domain"], target_test_dloader, student_backbone,
+                                    student_classifier, epoch, writer=writer, num_classes=num_classes,
+                                    top_5_accuracy=(num_classes > 10), is_src=True,
+                                    no_embedding=configs["GsfdaConfig"]["no_embedding"])
+            else:
+                target_acc = test_per_domain(configs["DAConfig"]["target_domain"], target_test_dloader, student_backbone,
+                                            student_classifier, epoch, writer=writer, num_classes=num_classes,
+                                            top_5_accuracy=(num_classes > 10))
             if epoch >= 1 and target_acc > best_acc:
                 best_acc = target_acc
                 best_backbone = copy.deepcopy(student_backbone.state_dict())
