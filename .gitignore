@@ -5,3 +5,4 @@ __pycache__/
 *.pth
 pretrain/.cache/*.pth
 wandb/
+logs/

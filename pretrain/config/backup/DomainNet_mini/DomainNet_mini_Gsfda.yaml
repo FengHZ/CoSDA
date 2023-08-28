@@ -1,0 +1,26 @@
+---
+DataConfig:
+  dataset: "DomainNet_mini"
+  absent_domain: ""
+
+ModelConfig:
+  backbone: "resnet50"
+  channels_per_group: 0
+  bottleneck_dim: 512
+
+TrainingConfig:
+  batch_size: 256
+  # The total data numbers we use in each epoch
+  epoch_samples: 30000
+  total_epochs: 40
+  # We decay learning rate from begin value to end value with cosine annealing schedule
+  learning_rate_begin: 0.01
+  learning_rate_end: 0.00016
+  # optimizer
+  optimizer: "SGD"
+  momentum: 0.9
+  # regularization
+  weight_decay: 0.0005
+  method: "Gsfda"
+  reg_par: 0.75
+  no_embedding: False

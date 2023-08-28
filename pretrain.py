@@ -153,7 +153,7 @@ def save_checkpoint(state, filename, configs):
     folder_name = "pretrain_parameters"
     if configs["TrainingConfig"]["method"] == "mixup":
         folder_name += "_mixup_{}".format(configs["TrainingConfig"]["beta"])
-    elif configs["TrainingConfig"]["method"] == "shot":
+    elif configs["TrainingConfig"]["method"] == "shot" or configs["TrainingConfig"]["method"] == "shot++":
         folder_name += "_shot"
     elif configs["TrainingConfig"]["method"] == "regular":
         pass

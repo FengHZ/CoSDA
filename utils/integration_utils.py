@@ -1,4 +1,4 @@
-from datasets.DomainNet import get_domainnet_dloader
+from datasets.DomainNet import get_domainnet_dloader, get_domainnet_mini_dloader
 from datasets.OfficeHome import get_officehome_dloader
 from train.dac.OfficeHomeDaC import get_officehome_dac_dloader
 from train.dac.DomainNetDaC import get_domainnet_dac_dloader
@@ -348,6 +348,12 @@ def build_pretrained_dataloader_and_models(args, configs):
         if configs["DataConfig"]["absent_domain"] in domains:
             domains.remove(configs["DataConfig"]["absent_domain"])
         dataset_loader = get_domainnet_dloader
+    elif configs["DataConfig"]["dataset"] == "DomainNet_mini":
+        domains = ['clipart', 'painting', 'real', 'sketch']
+        num_classes = 126
+        if configs["DataConfig"]["absent_domain"] in domains:
+            domains.remove(configs["DataConfig"]["absent_domain"])
+        dataset_loader = get_domainnet_mini_dloader
     elif configs["DataConfig"]["dataset"] == "OfficeHome":
         domains = ["Art", "Clipart", "Product", "Real_World"]
         num_classes = 65
