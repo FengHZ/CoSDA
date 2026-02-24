@@ -6,10 +6,11 @@ from torch.utils.data import DataLoader, Dataset
 import torch
 
 
-def read_domainnet_data(dataset_path, domain_name, split="train"):
+def read_domainnet_data(dataset_path, domain_name, is_mini, split="train"):
     data_paths = []
     data_labels = []
-    split_file = path.join(dataset_path, "splits", "{}_{}.txt".format(domain_name, split))
+    split_name = 'splits_mini' if is_mini else 'splits'
+    split_file = path.join(dataset_path, split_name, "{}_{}.txt".format(domain_name, split))
     with open(split_file, "r") as f:
         lines = f.readlines()
         for line in lines:
@@ -45,8 +46,8 @@ class DomainNet(Dataset):
 
 def get_domainnet_dloader(base_path, domain_name, batch_size, num_workers):
     dataset_path = path.join(base_path, 'dataset', 'DomainNet')
-    train_data_paths, train_data_labels = read_domainnet_data(dataset_path, domain_name, split="train")
-    test_data_paths, test_data_labels = read_domainnet_data(dataset_path, domain_name, split="test")
+    train_data_paths, train_data_labels = read_domainnet_data(dataset_path, domain_name, is_mini=False, split="train")
+    test_data_paths, test_data_labels = read_domainnet_data(dataset_path, domain_name, is_mini=False, split="test")
     transforms_train = transforms.Compose([
         transforms.RandomResizedCrop(224, scale=(0.75, 1)),
         transforms.RandomHorizontalFlip(),
@@ -66,3 +67,28 @@ def get_domainnet_dloader(base_path, domain_name, batch_size, num_workers):
     test_dloader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True,
                               shuffle=True)
     return train_dloader, test_dloader
+
+def get_domainnet_mini_dloader(base_path, domain_name, batch_size, num_workers):
+    dataset_path = path.join(base_path, 'dataset', 'DomainNet')
+    train_data_paths, train_data_labels = read_domainnet_data(dataset_path, domain_name, is_mini=True, split="train")
+    test_data_paths, test_data_labels = read_domainnet_data(dataset_path, domain_name, is_mini=True, split="test")
+    transforms_train = transforms.Compose([
+        transforms.RandomResizedCrop(224, scale=(0.75, 1)),
+        transforms.RandomHorizontalFlip(),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
+    ])
+    transforms_test = transforms.Compose([
+        transforms.Resize((224, 224)),
+        transforms.ToTensor(),
+        transforms.Normalize(mean=(0.485, 0.456, 0.406), std=(0.229, 0.224, 0.225))
+    ])
+
+    train_dataset = DomainNet(train_data_paths, train_data_labels, transforms_train, domain_name)
+    test_dataset = DomainNet(test_data_paths, test_data_labels, transforms_test, domain_name)
+    train_dloader = DataLoader(train_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True,
+                               shuffle=True)
+    test_dloader = DataLoader(test_dataset, batch_size=batch_size, num_workers=num_workers, pin_memory=True,
+                              shuffle=True)
+    return train_dloader, test_dloader
+

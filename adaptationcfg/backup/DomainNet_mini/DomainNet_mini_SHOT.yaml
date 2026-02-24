@@ -1,0 +1,54 @@
+---
+DataConfig:
+  dataset: "DomainNet_mini"
+
+ModelConfig:
+  backbone: "resnet50"
+  channels_per_group: 0
+  pretrain_strategy: "shot"
+  bottleneck_dim: 512
+
+TrainingConfig:
+  batch_size: 128
+  # The total data numbers we use in each epoch
+  epoch_samples: 30000
+  total_epochs: 40
+  # optimizer
+  optimizer: "SGD"
+  momentum: 0.9
+  # regularization
+  weight_decay: 0.0005
+  bn_momentum: 0.1
+  # We decay learning rate from begin value to end value with cosine annealing schedule
+  learning_rate_begin: 0.01
+  learning_rate_end: 0.0002
+  ema: False
+
+DAConfig:
+  source_domain: "clipart"
+  target_domain: "painting"
+  method: "SHOT"
+
+SHOTConfig:
+  threshold: 0 # the threshold of class filtering in obtain_label()
+  softmax_epsilon: 0.00001 #smoothing epsilon for softmax operation
+  cls_par: 0.3 # coefficient for cls_loss
+  ent_par: 1.0 # coefficient for ent_loss
+  ssl_par: 0.6 # coefficient for ssl_loss
+  gent: True # whether to apply gent_loss
+  shot_plus: False
+
+DataAugConfig:
+  method: "identity" # method can be "identity", "edgemix"
+
+
+
+
+
+
+
+
+
+
+
+

@@ -25,9 +25,37 @@ def get_domainnet_dac_dloader(base_path, domain_name, batch_size, num_workers):
     dataset_path = path.join(base_path, 'dataset', 'DomainNet')
     train_data_paths, train_data_labels = read_domainnet_data(dataset_path,
                                                               domain_name,
+                                                              is_mini=False,
                                                               split="train")
     test_data_paths, test_data_labels = read_domainnet_data(dataset_path,
                                                             domain_name,
+                                                            is_mini=False,
+                                                            split="test")
+    train_dataset = DomainNetDaC(train_data_paths, train_data_labels,
+                                 get_tailored_transforms_train(), domain_name)
+    test_dataset = DomainNet(test_data_paths, test_data_labels,
+                             get_tailored_transforms_test(), domain_name)
+    train_dloader = DataLoader(train_dataset,
+                               batch_size=batch_size,
+                               num_workers=num_workers,
+                               pin_memory=True,
+                               shuffle=True)
+    test_dloader = DataLoader(test_dataset,
+                              batch_size=batch_size,
+                              num_workers=num_workers,
+                              pin_memory=True,
+                              shuffle=False)
+    return train_dloader, test_dloader
+
+def get_domainnet_mini_dac_dloader(base_path, domain_name, batch_size, num_workers):
+    dataset_path = path.join(base_path, 'dataset', 'DomainNet')
+    train_data_paths, train_data_labels = read_domainnet_data(dataset_path,
+                                                              domain_name,
+                                                              is_mini=True,
+                                                              split="train")
+    test_data_paths, test_data_labels = read_domainnet_data(dataset_path,
+                                                            domain_name,
+                                                            is_mini=True,
                                                             split="test")
     train_dataset = DomainNetDaC(train_data_paths, train_data_labels,
                                  get_tailored_transforms_train(), domain_name)
